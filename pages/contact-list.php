@@ -3,36 +3,10 @@
 ?>
 
 <div class="content">
-  <!-- <div class="row">
-    <div class="col-xs-12">
-
-              <table id="example1" class="table table-bordered">
-                <thead>
-                  <th>Full Name</th>
-                  <th>Phone</th>
-                  <th>Action</th>
-                </thead>
-                <tbody>
-                        <tr>
-                          <td>+233-553-1570-22</td>
-                          <td>+233-553-1570-22</td>
-                          <td>
-                            <button class="btn btn-success btn-sm edit btn-flat"><i class='fa fa-edit'></i> Edit</button>
-                            <button class="btn btn-danger btn-sm delete btn-flat"><i class='fa fa-trash'></i> Delete</button>
-                          </td>
-                        </tr>
-                </tbody>
-              </table>
-    </div> -->
-
-        
       <div class="card">
-        <!-- <div class="card-header">
-          <h4 class="card-title">Simple Table</h4>
-        </div> -->
         <div class="card-body">
           <div class="">
-            <table id="example1" class="table table-bordered">
+            <table class="table table-bordered">
               <thead>
                 <th>Name</th>
                 <th>Country</th>
@@ -87,9 +61,7 @@
           </div>
         </div>
       </div> 
-
   </div> 
-
 <?php
  include_once '../components/footer.php'
  
