@@ -5,7 +5,7 @@
                 <ul>
                   <li>
                     <a href="#" target="_blank"
-                      >TekSed Inc</a
+                      > Inc</a
                     >
                   </li>
                   <li>
@@ -28,7 +28,7 @@
                   <script>
                     document.write(new Date().getFullYear());
                   </script>
-                  , made with <i class="fa fa-heart heart"></i> by TekSed Inc Team
+                  , made with <i class="fa fa-heart heart"></i> by  Inc Team
                 </span>
               </div>
             </div>
