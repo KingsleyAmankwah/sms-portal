@@ -1,3 +1,19 @@
+<?php
+session_start();
+require_once '../core/app.config.php';
+require_once '../core/extensions/classes.php';
+
+use SMSPortalExtensions\UIActions;
+
+// Check if user is logged in
+if (!isset($_SESSION['USER_ID'])) {
+    $_SESSION['status'] = "Please log in to access the dashboard";
+    $_SESSION['status_code'] = "error";
+    header('Location: ' . INDEX_PAGE);
+    exit;
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -8,6 +24,7 @@
       href="../assets/img/apple-icon.png"
     />
     <link rel="icon" type="image/png" href="../assets/img/favicon.png" />
+    <link rel="icon" type="image/x-icon" href="../assets/img/teksed-logo.png" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <title>SMS Portal</title>
     <meta
@@ -48,7 +65,7 @@
                   <span class="navbar-toggler-bar bar3"></span>
                 </button>
               </div>
-              <a class="navbar-brand" href="javascript:;">TekSeD SMS Portal</a>
+              <a class="navbar-brand" href="javascript:;"> SMS Portal</a>
             </div>
             <button
               class="navbar-toggler"
