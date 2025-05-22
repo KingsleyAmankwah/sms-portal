@@ -1,0 +1,11 @@
+{
+  "name": "vendor/autoload",
+  "require": {
+    "php": ">=7.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "SMSPortalExtensions\\": "core/extensions/"
+    }
+  }
+}
