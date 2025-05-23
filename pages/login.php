@@ -14,6 +14,13 @@ if (isset($_SESSION['USER_ID'])) {
     exit;
 }
 
+// Only generate CSRF token for GET requests
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    $csrf_token = Authentication::createToken();
+} else {
+    $csrf_token = $_SESSION['csrf_token'] ?? '';
+}
+
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
@@ -32,7 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Connect to database
         $conn = MySQLDatabase::createConnection();
         if ($conn) {
-            // Validate login credentials
             Validator::validateLoginCredentials($conn, $username, $password);
             $conn->close();
         } else {
@@ -42,8 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Generate CSRF token for the form
-$csrf_token = Authentication::createToken();
 $page_title = "Login - " . APP_BASE_TITLE;
 ?>
 
@@ -55,7 +59,6 @@ $page_title = "Login - " . APP_BASE_TITLE;
     <title><?php echo htmlspecialchars($page_title); ?></title>
     <link rel="stylesheet" href="../assets/css/global.css">
     <link rel="icon" type="image/x-icon" href="../assets/img/teksed-logo.png" />
-    <link rel="stylesheet" href="../assets/sweetalert/sweetalert2.min.css" />
 </head>
 <body>
     <div class="login-container">
@@ -94,6 +97,5 @@ $page_title = "Login - " . APP_BASE_TITLE;
             <img src="../assets/img/sms.jpg" alt="SMS Illustration" class="illustration">
         </div>
     </div>
-    <script src="../assets/sweetalert/sweetalert2.all.min.js"></script>
 </body>
 </html>
