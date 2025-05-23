@@ -1,7 +1,8 @@
 {
   "name": "teksed/sms-portal",
   "require": {
-    "php": ">=7.4"
+    "php": ">=7.4",
+    "phpoffice/phpspreadsheet": "^4.2"
   },
   "autoload": {
     "psr-4": {
