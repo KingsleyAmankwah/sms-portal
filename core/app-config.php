@@ -5,7 +5,7 @@ define("APP_LOGO_URL", "assets/images/logo.png");
 define("APP_VERSION", "1.0.0");
 define("APP_BASE_TITLE", "SMS Portal");
 # Page Settings
-define("INDEX_PAGE", "index.html");
+define("INDEX_PAGE", "login.php");
 define("DASHBOARD_PAGE", "dashboard.php");
 
 # Giant SMS Settings
