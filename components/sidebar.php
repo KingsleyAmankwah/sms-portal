@@ -46,7 +46,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             </li>
         
             <li class="active-pro">
-              <a href="./upgrade.html">
+              <a href="#"  onclick="confirmLogout()">
                 <i class="nc-icon nc-spaceship"></i>
                 <p>Log Out</p>
               </a>
