@@ -1,5 +1,5 @@
 {
-  "name": "vendor/autoload",
+  "name": "teksed/sms-portal",
   "require": {
     "php": ">=7.4"
   },
