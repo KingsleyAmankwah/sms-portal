@@ -7,14 +7,29 @@
 
 namespace SMSPortalExtensions;
 
-require_once __DIR__ . '/../app-config.php';
-require_once 'interfaces.php';
-
 use DateTime;
 use mysqli;
 
+require_once __DIR__ . '/../app-config.php';
+require_once 'interfaces.php';
+
+const DB_ERROR_PREPARE_FAILED = "Prepare failed: ";
+const CUSTOM_LOG = 'C:\xampp\htdocs\dashboard-master\debug.log';
+
+/**
+ * Logs custom messages to a predefined log file
+ * @param string $message The message to log
+ */
+function customLog(string $message): void {
+    file_put_contents(CUSTOM_LOG, date('Y-m-d H:i:s') . " - $message\n", FILE_APPEND);
+}
+
 class DateFormatter implements IDateFormatter
-{
+{  /**
+     * Formats a date string to a more readable format (e.g., "1st January, 2023")
+     * @param string|null $dateString The date string to format
+     * @return string|null Formatted date or null if invalid input
+     */
     public static function formatDate($dateString)
     {
         if ($dateString === null) {
@@ -30,22 +45,36 @@ class DateFormatter implements IDateFormatter
 }
 
 class MySQLDatabase implements IDatabase
-{
+{   /**
+     * Creates a new database connection
+     * @return mysqli|false Returns mysqli connection object or false on failure
+     */
     public static function createConnection()
     {
         $conn = new mysqli(DB_HOST, DB_USERNAME, DB_PASSWORD, RESOURCE_DATABASE);
         if ($conn->connect_error) {
-            error_log("Database connection failed: " . $conn->connect_error);
+            $message = "Database connection failed: " . $conn->connect_error;
+            error_log($message);
+            customLog($message);
             return false;
         }
         return $conn;
     }
 
+    /**
+     * Executes a SELECT query with optional parameters
+     * @param mysqli $conn Database connection
+     * @param string|false $format Format string for bound parameters
+     * @param mixed ...$args Parameters to bind
+     * @return mysqli_result|false Returns result set or false on failure
+     */
     public static function sqlSelect($conn, $query, $format = false, ...$args)
     {
         $stmt = $conn->prepare($query);
         if ($stmt === false) {
-            error_log("Prepare failed: " . $conn->error);
+            $message = DB_ERROR_PREPARE_FAILED . $conn->error;
+            error_log($message);
+            customLog($message);
             return false;
         }
 
@@ -57,16 +86,25 @@ class MySQLDatabase implements IDatabase
             $stmt->close();
             return $result;
         }
-        error_log("Execute failed: " . $stmt->error);
+        customLog("Execute failed: " . $stmt->error);
         $stmt->close();
         return false;
     }
 
+     /**
+     * Executes an INSERT query with optional parameters
+     * @param mysqli $conn Database connection
+     * @param string|false $format Format string for bound parameters
+     * @param mixed ...$args Parameters to bind
+     * @return int Returns last insert ID or -1 on failure
+     */
     public static function sqlInsert($conn, $query, $format = false, ...$args)
     {
         $stmt = $conn->prepare($query);
         if ($stmt === false) {
-            error_log("Prepare failed: " . $conn->error);
+            $message = DB_ERROR_PREPARE_FAILED . $conn->error;
+            error_log($message);
+            customLog($message);
             return -1;
         }
         if ($format) {
@@ -77,15 +115,25 @@ class MySQLDatabase implements IDatabase
             $stmt->close();
             return $id;
         }
+        customLog("Insert failed: " . $stmt->error);
         $stmt->close();
         return -1;
     }
 
+     /**
+     * Executes an UPDATE query with optional parameters
+     * @param mysqli $conn Database connection
+     * @param string|false $format Format string for bound parameters
+     * @param mixed ...$vars Parameters to bind
+     * @return bool|string Returns true on success, error message on failure
+     */
     public static function sqlUpdate($conn, $query, $format = false, ...$vars)
     {
         $stmt = $conn->prepare($query);
         if ($stmt === false) {
-            error_log("Prepare failed: " . $conn->error);
+            $message = DB_ERROR_PREPARE_FAILED . $conn->error;
+            error_log($message);
+            customLog($message);
             return $conn->error;
         }
         if ($format) {
@@ -96,54 +144,106 @@ class MySQLDatabase implements IDatabase
             return true;
         }
         $error = $stmt->error;
+        customLog("Update failed: " . $error);
         $stmt->close();
         return $error;
     }
 }
 
 class Authentication implements IAuthentication
-{
+{   /**
+     * Creates a new CSRF token and stores it in the session
+     * @return string The generated token
+     */
     public static function createToken()
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            $message = "createToken: Session not active";
+            error_log($message);
+            customLog($message);
+            session_start();
+        }
         $seed = self::urlSafeEncode(random_bytes(8));
         $t = time();
-        $hash = self::urlSafeEncode(hash_hmac('sha256', session_id() . $seed . $t, CSRF_TOKEN_SECRET, true));
-        return self::urlSafeEncode($hash . '|' . $seed . '|' . $t);
+        $hash = self::urlSafeEncode(hash_hmac('sha256', $seed . $t, CSRF_TOKEN_SECRET, true));
+        $token = self::urlSafeEncode($hash . '|' . $seed . '|' . $t);
+        $_SESSION['csrf_token'] = $token;
+        customLog("CSRF token created: $token");
+        return $token;
     }
 
-    public static function validateToken($token)
-    {
+    /**
+ * Validates a CSRF token against the one stored in session
+ * @param string $token The token to validate
+ * @return bool True if valid, false otherwise
+ */
+public static function validateToken($token): bool
+{
+    $isValid = false;
+    
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        customLog("validateToken: Session not active");
+        session_start();
+    }
+
+    // Check session token exists and matches
+    if (isset($_SESSION['csrf_token']) && $_SESSION['csrf_token'] === $token) {
         $parts = explode('|', self::urlSafeDecode($token));
-        if (count($parts) !== 3) {
-            error_log("CSRF token invalid: Incorrect part count");
-            return false;
+        
+        // Verify token structure
+        if (count($parts) === 3) {
+            $hash = hash_hmac('sha256', $parts[1] . $parts[2], CSRF_TOKEN_SECRET, true);
+            
+            // Verify token hash
+            if (hash_equals($hash, self::urlSafeDecode($parts[0]))) {
+                customLog("CSRF token validated successfully: $token");
+                $isValid = true;
+            } else {
+                customLog("CSRF token invalid: Hash mismatch");
+            }
+        } else {
+            customLog("CSRF token invalid: Incorrect part count");
         }
-        $hash = hash_hmac('sha256', session_id() . $parts[1] . $parts[2], CSRF_TOKEN_SECRET, true);
-        if (!hash_equals($hash, self::urlSafeDecode($parts[0]))) {
-            error_log("CSRF token invalid: Hash mismatch");
-            return false;
-        }
-        return true;
+    } else {
+        customLog("CSRF token invalid: Session token mismatch. Submitted: $token, Session: " . ($_SESSION['csrf_token'] ?? 'none'));
     }
 
+    return $isValid;
+}
+
+    /**
+     * URL-safe base64 encoding
+     * @param string $data Data to encode
+     * @return string Encoded data
+     */
     private static function urlSafeEncode($data)
     {
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
 
+    /**
+     * URL-safe base64 decoding
+     * @param string $data Data to decode
+     * @return string Decoded data
+     */
     private static function urlSafeDecode($data)
     {
         return base64_decode(strtr($data, '-_', '+/'));
     }
 }
 
+
 class Validator implements IValidator
-{
+{    /**
+     * Sanitizes and validates user input
+     * @param string $data Input data to validate
+     * @return string Sanitized data
+     */
     public static function validateUserInput($data)
     {
         $conn = MySQLDatabase::createConnection();
         if (!$conn) {
-            error_log("validateUserInput: Database connection failed");
+            customLog("validateUserInput: Database connection failed");
             return $data;
         }
         $data = trim($data);
@@ -155,10 +255,15 @@ class Validator implements IValidator
         return $data;
     }
 
+     /**
+     * Validates user login credentials
+     * @param mysqli $conn Database connection
+     * @param string $username Username to validate
+     * @param string $password Password to validate
+     */
     public static function validateLoginCredentials($conn, $username, $password)
     {
         if (!$conn) {
-            error_log("validateLoginCredentials: Invalid database connection");
             $_SESSION['status'] = "Database connection failed";
             $_SESSION['status_code'] = "error";
             return;
@@ -167,7 +272,6 @@ class Validator implements IValidator
         $res = MySQLDatabase::sqlSelect($conn, 'SELECT id, username, password, role FROM users WHERE username = ?', 's', $username);
 
         if ($res === false) {
-            error_log("validateLoginCredentials: SQL query failed for username: $username");
             $_SESSION['status'] = "Database query failed";
             $_SESSION['status_code'] = "error";
             return;
@@ -175,26 +279,27 @@ class Validator implements IValidator
 
         if ($res->num_rows === 1) {
             $user = $res->fetch_assoc();
-            if (password_verify($password, $user['password'])) {
+            if (md5($password) === $user['password']) {
+                session_regenerate_id(true);
                 $_SESSION['USER_ID'] = $user['id'];
                 $_SESSION['ROLE'] = $user['role'];
                 $_SESSION['USERNAME'] = $user['username'];
+                unset($_SESSION['csrf_token']);
                 
                 $updateResult = MySQLDatabase::sqlUpdate($conn, 'UPDATE users SET last_login = NOW() WHERE id = ?', 'i', $user['id']);
                 if ($updateResult !== true) {
-                    error_log("validateLoginCredentials: Failed to update last_login for user ID: " . $user['id']);
+                    $_SESSION['status'] = "Failed to update last_login for user";
+                    $_SESSION['status_code'] = "info";
                 }
                 
                 $res->free_result();
                 header('Location: ' . DASHBOARD_PAGE);
                 exit;
             } else {
-                error_log("validateLoginCredentials: Password verification failed for username: $username");
                 $_SESSION['status'] = "Invalid login credentials";
                 $_SESSION['status_code'] = "error";
             }
         } else {
-            error_log("validateLoginCredentials: No user found for username: $username");
             $_SESSION['status'] = "Invalid login credentials";
             $_SESSION['status_code'] = "error";
         }
@@ -205,15 +310,26 @@ class Validator implements IValidator
 }
 
 class UIActions implements IUIActions
-{
+{   /**
+     * Loads and returns spinner HTML content
+     * @return string Spinner HTML
+     */
     public static function loadSpinner()
     {
         ob_start();
         include '../assets/loader/spinner.html';
-        $content = ob_get_clean();
-        return $content;
+        return ob_get_clean();
+       
     }
 
+     /**
+     * Generates JavaScript code to show a SweetAlert popup
+     * @param string $title Alert title
+     * @param string $message Alert message
+     * @param string $icon Alert icon (success, error, warning, info, question)
+     * @param string ...$params Optional redirect URL
+     * @return string JavaScript code for the alert
+     */
     public static function showAlert($title, $message, $icon, ...$params)
     {
         $redirectUrl = !empty($params) ? $params[0] : '';
@@ -233,7 +349,12 @@ class UIActions implements IUIActions
 }
 
 class SMSClient implements ISMSClient
-{
+{   /**
+     * Sends bulk SMS messages
+     * @param array $numbersArray Array of phone numbers
+     * @param string $message Message to send
+     * @return string API response or error message
+     */
     public static function sendBulkSMS($numbersArray, $message)
     {
         $curl = curl_init();
@@ -273,6 +394,10 @@ class SMSClient implements ISMSClient
         return trim($response, " \t\n\r\0\x0BNULL");
     }
 
+     /**
+     * Checks SMS account balance
+     * @return string API response or error message
+     */
     public static function checkSMSBalance()
     {
         $curl = curl_init();
