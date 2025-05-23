@@ -22,7 +22,7 @@ define("DB_PASSWORD", '');
 
 # Security Settings
 define("MAX_LOGIN_ATTEMPTS_PER_HOUR", 5);
-define("CSRF_TOKEN_SECRET", bin2hex(random_bytes(32))); // Generate a random secret
+define("CSRF_TOKEN_SECRET", "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6");
 
 # Set timezone
 date_default_timezone_set("UTC");
