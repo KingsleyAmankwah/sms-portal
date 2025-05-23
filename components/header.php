@@ -7,7 +7,7 @@ use SMSPortalExtensions\UIActions;
 
 // Check if user is logged in
 if (!isset($_SESSION['USER_ID'])) {
-    $_SESSION['status'] = "Please log in to access the dashboard";
+    $_SESSION['status'] = "Unauthorized access, please log in to continue";
     $_SESSION['status_code'] = "error";
     header('Location: ' . INDEX_PAGE);
     exit;
@@ -106,11 +106,20 @@ if (!isset($_SESSION['USER_ID'])) {
                   >
                     <a class="dropdown-item" href="#">Account Settings</a>
                     <a class="dropdown-item" href="#">Contact Support Team</a>
-                    <a class="dropdown-item" href="#">Log Out</a>
+                    <a class="dropdown-item" href="#" onclick="confirmLogout()">Log Out</a>
                   </div>
                 </li>
               </ul>
             </div>
           </div>
         </nav>
-        <!-- End Navbar -->
+<?php
+            if (isset($_SESSION['status'])) {
+                echo UIActions::showAlert(
+                    $_SESSION['status_code'] === 'error' ? 'Error' : 'Success',
+                    $_SESSION['status'],
+                    $_SESSION['status_code']
+                );
+                unset($_SESSION['status'], $_SESSION['status_code']);
+            }
+?>
