@@ -60,11 +60,26 @@
     <script src="../assets/datatables.net/js/jquery.dataTables.min.js"></script>
     <script src="../assets/dataTables/js/dataTables.bootstrap.min.js"></script>
     <script src="../assets/dataTables/js/dataTables.bootstrap.js"></script>
+    <script src="../assets/sweetalert/sweetalert2.all.min.js"></script>
+
+      <!-- Logout Confirmation -->
     <script>
-      $(document).ready(function () {
-        // Javascript method's body can be found in assets/assets-for-demo/js/demo.js
-        demo.initChartsPages();
-      });
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: 'Do you want to log out of your account?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, log out',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'logout.php';
+                }
+            });
+        }
     </script>
 
     <!-- Data Table Initialize -->
