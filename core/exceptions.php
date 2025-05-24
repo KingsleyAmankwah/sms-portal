@@ -95,5 +95,32 @@ class SMSPortalException extends \Exception
     {
         return new self('No contacts were added. ' . $errors, self::NO_CONTACTS_ADDED);
     }
+
+       public static function invalidParameter($param): self
+    {
+        return new self("Invalid parameter: {$param}", self::INVALID_PARAMETER);
+    }
+
+    public static function invalidAction(): self
+    {
+        return new self('Invalid action specified', self::INVALID_ACTION);
+    }
+
+    public static function invalidSession(): self
+    {
+        return new self('User session not authenticated', self::INVALID_SESSION);
+    }
+
+    public static function duplicateGroup() {
+        return new self('A group with this name already exists');
+    }
+
+    public static function groupHasContacts() {
+        return new self('Cannot delete group because it contains contacts');
+    }
+
+    public static function protectedGroup() {
+        return new self('Cannot delete the default "All" group');
+    }
     
 }
