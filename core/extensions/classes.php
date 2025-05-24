@@ -148,6 +148,36 @@ class MySQLDatabase implements IDatabase
         $stmt->close();
         return $error;
     }
+
+      /**
+     * Executes a DELETE query with optional parameters
+     * @param mysqli $conn Database connection
+     * @param string $query SQL query
+     * @param string|false $format Format string for bound parameters
+     * @param mixed ...$args Parameters to bind
+     * @return int Returns number of affected rows or -1 on failure
+     */
+    public static function sqlDelete($conn, $query, $format = false, ...$args)
+    {
+        $stmt = $conn->prepare($query);
+        if ($stmt === false) {
+            $message = DB_ERROR_PREPARE_FAILED . $conn->error;
+            error_log($message);
+            customLog($message);
+            return -1;
+        }
+        if ($format) {
+            $stmt->bind_param($format, ...$args);
+        }
+        if ($stmt->execute()) {
+            $affected_rows = $stmt->affected_rows;
+            $stmt->close();
+            return $affected_rows;
+        }
+        customLog("Delete failed: " . $stmt->error);
+        $stmt->close();
+        return -1;
+    }
 }
 
 class Authentication implements IAuthentication
