@@ -32,6 +32,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
               </a>
             </li>
 
+            <li class="<?= ($currentPage == 'groups.php') ? 'active' : '' ?>">
+              <a href="./groups.php">
+                  <i class="nc-icon nc-badge"></i>
+                  <p>Manage Groups</p>
+              </a>
+            </li>
+
             <li class="<?= ($currentPage == 'upload-contacts.php') ? 'active' : '' ?>">
               <a href="./upload-contacts.php">
                  <i class="nc-icon nc-cloud-upload-94"></i>
