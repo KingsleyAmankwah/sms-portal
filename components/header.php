@@ -20,7 +20,7 @@ if (!isset($_SESSION['USER_ID'])) {
     <meta charset="utf-8" />
     <link rel="icon" type="image/x-icon" href="../assets/img/teksed-logo.png" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
-    <title>SMS Portal</title>
+    <title><?php echo isset($pageTitle) ? $pageTitle : 'SMS Portal'; ?></title>
     <meta
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no"
       name="viewport"
