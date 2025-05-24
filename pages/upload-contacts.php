@@ -91,7 +91,7 @@ $individual_data = [
                     </div>
                     <!-- Bulk Upload Form -->
                     <div class="tab-pane fade" id="bulk">
-                        <form action="../controllers/process_contact_upload.php" method="POST" enctype="multipart/form-data" autocomplete="off" class="mt-4">
+                        <form action="../controllers/process_contacts_upload.php" method="POST" enctype="multipart/form-data" autocomplete="off" class="mt-4">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                             <input type="hidden" name="upload_type" value="bulk">
                             <div class="form-group">
