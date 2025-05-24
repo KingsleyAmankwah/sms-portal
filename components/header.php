@@ -117,3 +117,4 @@ if (!isset($_SESSION['USER_ID'])) {
                 unset($_SESSION['status'], $_SESSION['status_code']);
             }
 ?>
+<div class="content">
