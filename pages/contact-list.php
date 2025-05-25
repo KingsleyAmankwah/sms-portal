@@ -8,7 +8,8 @@ use SMSPortalExtensions\MySQLDatabase;
 // Ensure customLog is defined
 if (!function_exists('customLog')) {
     define('CUSTOM_LOG', 'C:\xampp\htdocs\dashboard-master\debug.log');
-    function customLog($message) {
+    function customLog($message)
+    {
         file_put_contents(CUSTOM_LOG, date('Y-m-d H:i:s') . " - $message\n", FILE_APPEND);
     }
 }
@@ -138,105 +139,111 @@ if ($conn) {
 <?php include '../components/footer.php'; ?>
 
 <style>
-.table-responsive {
-    min-height: 200px;
-}
-.table th, .table td {
-    vertical-align: middle;
-}
-.action-btn {
-    margin: 0 5px;
-}
-#search-input {
-    max-width: 300px;
-}
-.pagination .page-link {
-    cursor: pointer;
-}
-.no-contacts-message {
-    text-align: center;
-    color: #6c757d;
-    padding: 20px;
-    font-size: 1.1em;
-}
+    .table-responsive {
+        min-height: 200px;
+    }
+
+    .table th,
+    .table td {
+        vertical-align: middle;
+    }
+
+    .action-btn {
+        margin: 0 5px;
+    }
+
+    #search-input {
+        max-width: 300px;
+    }
+
+    .pagination .page-link {
+        cursor: pointer;
+    }
+
+    .no-contacts-message {
+        text-align: center;
+        color: #6c757d;
+        padding: 20px;
+        font-size: 1.1em;
+    }
 </style>
 
 <script>
-// Debounce function to limit search requests
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(event) {
-        const later = () => {
+    // Debounce function to limit search requests
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(event) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(event);
+            };
             clearTimeout(timeout);
-            func(event);
+            timeout = setTimeout(later, wait);
         };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
+    }
 
-document.addEventListener('DOMContentLoaded', () => {
-    let currentPage = 1;
-    let itemsPerPage = 10;
-    let searchQuery = '';
+    document.addEventListener('DOMContentLoaded', () => {
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let searchQuery = '';
 
-    // Load contacts on page load
-    loadContacts();
-
-    // Handle search input
-    $('#search-input').on('input', debounce(function (event) {
-        const input = event.target;
-        searchQuery = input && typeof input.value === 'string' ? input.value.trim() : '';
-        currentPage = 1; // Reset to first page on search
+        // Load contacts on page load
         loadContacts();
-    }, 300));
 
-    // Handle items per page change
-    $('#items-per-page').on('change', function () {
-        itemsPerPage = parseInt($(this).val());
-        currentPage = 1; // Reset to first page
-        loadContacts();
-    });
+        // Handle search input
+        $('#search-input').on('input', debounce(function(event) {
+            const input = event.target;
+            searchQuery = input && typeof input.value === 'string' ? input.value.trim() : '';
+            currentPage = 1; // Reset to first page on search
+            loadContacts();
+        }, 300));
 
-    // Handle edit form submission
-    $('#edit-contact-form').on('submit', function (e) {
-        e.preventDefault();
-        updateContact();
-    });
+        // Handle items per page change
+        $('#items-per-page').on('change', function() {
+            itemsPerPage = parseInt($(this).val());
+            currentPage = 1; // Reset to first page
+            loadContacts();
+        });
 
-    // Handle pagination clicks (using event delegation)
-    $('#pagination-controls').on('click', '.page-link', function (e) {
-        e.preventDefault();
-        const page = $(this).data('page');
-        if (page === 'prev') {
-            if (currentPage > 1) currentPage--;
-        } else if (page === 'next') {
-            currentPage++;
-        } else {
-            currentPage = page;
-        }
-        loadContacts();
-    });
+        // Handle edit form submission
+        $('#edit-contact-form').on('submit', function(e) {
+            e.preventDefault();
+            updateContact();
+        });
 
-    function loadContacts() {
-        $.ajax({
-            url: '../controllers/process_contacts.php',
-            type: 'POST',
-            data: {
-                action: 'fetch',
-                page: currentPage,
-                items_per_page: itemsPerPage,
-                search: searchQuery,
-                csrf_token: '<?php echo htmlspecialchars($csrf_token); ?>'
-            },
-            dataType: 'json',
-            success: function (response) {
-                if (response.status_code === 'success') {
-                    const tbody = $('#contacts-table-body');
-                    tbody.empty();
-                    if (response.contacts && response.contacts.length > 0) {
-                        response.contacts.forEach(contact => {
-                            tbody.append(`
+        // Handle pagination clicks (using event delegation)
+        $('#pagination-controls').on('click', '.page-link', function(e) {
+            e.preventDefault();
+            const page = $(this).data('page');
+            if (page === 'prev') {
+                if (currentPage > 1) currentPage--;
+            } else if (page === 'next') {
+                currentPage++;
+            } else {
+                currentPage = page;
+            }
+            loadContacts();
+        });
+
+        function loadContacts() {
+            $.ajax({
+                url: '../controllers/process_contacts.php',
+                type: 'POST',
+                data: {
+                    action: 'fetch',
+                    page: currentPage,
+                    items_per_page: itemsPerPage,
+                    search: searchQuery,
+                    csrf_token: '<?php echo htmlspecialchars($csrf_token); ?>'
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status_code === 'success') {
+                        const tbody = $('#contacts-table-body');
+                        tbody.empty();
+                        if (response.contacts && response.contacts.length > 0) {
+                            response.contacts.forEach(contact => {
+                                tbody.append(`
                                 <tr data-contact-id="${contact.id}">
                                     <td>${contact.name || ''}</td>
                                     <td>${contact.phone_number || ''}</td>
@@ -257,202 +264,202 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </td>
                                 </tr>
                             `);
-                        });
-                    } else {
-                        // Display message based on search query
-                        const message = searchQuery
-                            ? 'No matching contacts found for your search.'
-                            : 'No contacts found. Add contacts to get started.';
-                        tbody.append(`
+                            });
+                        } else {
+                            // Display message based on search query
+                            const message = searchQuery ?
+                                'No matching contacts found for your search.' :
+                                'No contacts found. Add contacts to get started.';
+                            tbody.append(`
                             <tr>
                                 <td colspan="7" class="no-contacts-message">${message}</td>
                             </tr>
                         `);
-                    }
+                        }
 
-                    // Update pagination controls
-                    updatePagination(response.total_contacts, response.items_per_page, response.current_page);
+                        // Update pagination controls
+                        updatePagination(response.total_contacts, response.items_per_page, response.current_page);
 
-                    // Bind edit and delete button events
-                    $('.edit-btn').on('click', function () {
-                        const btn = $(this);
-                        $('#edit-contact-id').val(btn.data('id'));
-                        $('#edit-name').val(btn.data('name'));
-                        $('#edit-phone_number').val(btn.data('phone'));
-                        $('#edit-email').val(btn.data('email'));
-                        $('#edit-group').val(btn.data('group'));
-                        $('#edit-company').val(btn.data('company'));
-                        $('#edit-notes').val(btn.data('notes'));
-                        $('#editContactModal').modal('show');
-                    });
-
-                    $('.delete-btn').on('click', function () {
-                        const contactId = $(this).data('id');
-                        Swal.fire({
-                            title: 'Are you sure?',
-                            text: 'This contact will be permanently deleted.',
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonText: 'Yes, delete it!',
-                            cancelButtonText: 'Cancel'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                deleteContact(contactId);
-                            }
+                        // Bind edit and delete button events
+                        $('.edit-btn').on('click', function() {
+                            const btn = $(this);
+                            $('#edit-contact-id').val(btn.data('id'));
+                            $('#edit-name').val(btn.data('name'));
+                            $('#edit-phone_number').val(btn.data('phone'));
+                            $('#edit-email').val(btn.data('email'));
+                            $('#edit-group').val(btn.data('group'));
+                            $('#edit-company').val(btn.data('company'));
+                            $('#edit-notes').val(btn.data('notes'));
+                            $('#editContactModal').modal('show');
                         });
-                    });
-                } else {
+
+                        $('.delete-btn').on('click', function() {
+                            const contactId = $(this).data('id');
+                            Swal.fire({
+                                title: 'Are you sure?',
+                                text: 'This contact will be permanently deleted.',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes, delete it!',
+                                cancelButtonText: 'Cancel'
+                            }).then((result) => {
+                                if (result.isConfirmed) {
+                                    deleteContact(contactId);
+                                }
+                            });
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: response.status || 'Failed to load contacts',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function(xhr) {
                     Swal.fire({
                         title: 'Error',
-                        text: response.status || 'Failed to load contacts',
+                        text: 'Failed to load contacts: ' + (xhr.responseJSON?.status || 'Server error'),
                         icon: 'error',
                         confirmButtonText: 'OK'
                     });
                 }
-            },
-            error: function (xhr) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to load contacts: ' + (xhr.responseJSON?.status || 'Server error'),
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            }
-        });
-    }
+            });
+        }
 
-    function updatePagination(totalContacts, itemsPerPage, currentPage) {
-        const totalPages = Math.ceil(totalContacts / itemsPerPage);
-        const pagination = $('#pagination-controls');
-        const info = $('#pagination-info');
-        pagination.empty();
+        function updatePagination(totalContacts, itemsPerPage, currentPage) {
+            const totalPages = Math.ceil(totalContacts / itemsPerPage);
+            const pagination = $('#pagination-controls');
+            const info = $('#pagination-info');
+            pagination.empty();
 
-        // Update pagination info
-        const start = totalContacts > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
-        const end = Math.min(currentPage * itemsPerPage, totalContacts);
-        info.text(`Showing ${start} to ${end} of ${totalContacts} contacts`);
+            // Update pagination info
+            const start = totalContacts > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+            const end = Math.min(currentPage * itemsPerPage, totalContacts);
+            info.text(`Showing ${start} to ${end} of ${totalContacts} contacts`);
 
-        // Add Previous button
-        pagination.append(`
+            // Add Previous button
+            pagination.append(`
             <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
                 <a class="page-link" data-page="prev">Previous</a>
             </li>
         `);
 
-        // Add page numbers (limit to 5 for simplicity)
-        const maxPagesToShow = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
-        let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-        if (endPage - startPage + 1 < maxPagesToShow) {
-            startPage = Math.max(1, endPage - maxPagesToShow + 1);
-        }
+            // Add page numbers (limit to 5 for simplicity)
+            const maxPagesToShow = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+            let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+            if (endPage - startPage + 1 < maxPagesToShow) {
+                startPage = Math.max(1, endPage - maxPagesToShow + 1);
+            }
 
-        for (let i = startPage; i <= endPage; i++) {
-            pagination.append(`
+            for (let i = startPage; i <= endPage; i++) {
+                pagination.append(`
                 <li class="page-item ${i === currentPage ? 'active' : ''}">
                     <a class="page-link" data-page="${i}">${i}</a>
                 </li>
             `);
-        }
+            }
 
-        // Add Next button
-        pagination.append(`
+            // Add Next button
+            pagination.append(`
             <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
                 <a class="page-link" data-page="next">Next</a>
             </li>
         `);
-    }
+        }
 
-    function deleteContact(contactId) {
-        $.ajax({
-            url: '../controllers/process_contacts.php',
-            type: 'POST',
-            data: {
-                action: 'delete',
-                contact_id: contactId,
-                csrf_token: '<?php echo htmlspecialchars($csrf_token); ?>'
-            },
-            dataType: 'json',
-            success: function (response) {
-                if (response.status_code === 'success') {
-                    loadContacts(); // Refresh table
-                    Swal.fire({
-                        title: 'Success',
-                        text: response.status,
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    });
-                } else {
+        function deleteContact(contactId) {
+            $.ajax({
+                url: '../controllers/process_contacts.php',
+                type: 'POST',
+                data: {
+                    action: 'delete',
+                    contact_id: contactId,
+                    csrf_token: '<?php echo htmlspecialchars($csrf_token); ?>'
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status_code === 'success') {
+                        loadContacts(); // Refresh table
+                        Swal.fire({
+                            title: 'Success',
+                            text: response.status,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: response.status || 'Failed to delete contact',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function(xhr) {
                     Swal.fire({
                         title: 'Error',
-                        text: response.status || 'Failed to delete contact',
+                        text: 'Failed to delete contact: ' + (xhr.responseJSON?.status || 'Server error'),
                         icon: 'error',
                         confirmButtonText: 'OK'
                     });
                 }
-            },
-            error: function (xhr) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to delete contact: ' + (xhr.responseJSON?.status || 'Server error'),
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            }
-        });
-    }
+            });
+        }
 
-    function updateContact() {
-        const form = $('#edit-contact-form');
-        const btn = $('#save-contact-btn');
-        const spinner = $('#save-spinner');
-        const btnText = $('#save-btn-text');
+        function updateContact() {
+            const form = $('#edit-contact-form');
+            const btn = $('#save-contact-btn');
+            const spinner = $('#save-spinner');
+            const btnText = $('#save-btn-text');
 
-        btn.attr('disabled', true);
-        spinner.removeClass('d-none');
-        btnText.text('Saving...');
+            btn.attr('disabled', true);
+            spinner.removeClass('d-none');
+            btnText.text('Saving...');
 
-        $.ajax({
-            url: '../controllers/process_contacts.php',
-            type: 'POST',
-            data: form.serialize() + '&action=update',
-            dataType: 'json',
-            success: function (response) {
-                btn.attr('disabled', false);
-                spinner.addClass('d-none');
-                btnText.text('Save Changes');
+            $.ajax({
+                url: '../controllers/process_contacts.php',
+                type: 'POST',
+                data: form.serialize() + '&action=update',
+                dataType: 'json',
+                success: function(response) {
+                    btn.attr('disabled', false);
+                    spinner.addClass('d-none');
+                    btnText.text('Save Changes');
 
-                if (response.status_code === 'success') {
-                    $('#editContactModal').modal('hide');
-                    loadContacts(); // Refresh table
-                    Swal.fire({
-                        title: 'Success',
-                        text: response.status,
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    });
-                } else {
+                    if (response.status_code === 'success') {
+                        $('#editContactModal').modal('hide');
+                        loadContacts(); // Refresh table
+                        Swal.fire({
+                            title: 'Success',
+                            text: response.status,
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: response.status || 'Failed to update contact',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    btn.attr('disabled', false);
+                    spinner.addClass('d-none');
+                    btnText.text('Save Changes');
+
                     Swal.fire({
                         title: 'Error',
-                        text: response.status || 'Failed to update contact',
+                        text: 'Failed to update contact: ' + (xhr.responseJSON?.status || 'Server error'),
                         icon: 'error',
                         confirmButtonText: 'OK'
                     });
                 }
-            },
-            error: function (xhr) {
-                btn.attr('disabled', false);
-                spinner.addClass('d-none');
-                btnText.text('Save Changes');
-
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Failed to update contact: ' + (xhr.responseJSON?.status || 'Server error'),
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            }
-        });
-    }
-});
+            });
+        }
+    });
 </script>
