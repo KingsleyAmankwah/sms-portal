@@ -11,10 +11,12 @@ use SMSPortalExceptions\SMSPortalException;
 
 header('Content-Type: application/json; charset=utf-8');
 
-class ContactManager {
+class ContactManager
+{
     private $conn;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
@@ -27,7 +29,8 @@ class ContactManager {
         }
     }
 
-    public function process() {
+    public function process()
+    {
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 throw SMSPortalException::invalidRequest();
@@ -58,10 +61,11 @@ class ContactManager {
         }
     }
 
-    private function fetchContacts() {
+    private function fetchContacts()
+    {
         $page = isset($_POST['page']) && is_numeric($_POST['page']) ? max(1, (int)$_POST['page']) : 1;
-        $itemsPerPage = isset($_POST['items_per_page']) && is_numeric($_POST['items_per_page']) 
-            ? max(1, (int)$_POST['items_per_page']) 
+        $itemsPerPage = isset($_POST['items_per_page']) && is_numeric($_POST['items_per_page'])
+            ? max(1, (int)$_POST['items_per_page'])
             : 10;
         $search = isset($_POST['search']) ? Validator::validateUserInput($_POST['search']) : '';
 
@@ -70,7 +74,7 @@ class ContactManager {
         // Build query
         $query = 'SELECT id, name, phone_number, email, `group`, company, notes FROM contacts WHERE user_id = ?';
         $params = ['i', $_SESSION['USER_ID']];
-        
+
         if ($search) {
             $query .= ' AND (name LIKE ? OR phone_number LIKE ?)';
             $params[0] .= 'ss';
@@ -123,7 +127,8 @@ class ContactManager {
         ]);
     }
 
-    private function deleteContact() {
+    private function deleteContact()
+    {
         $contact_id = $_POST['contact_id'] ?? '';
         if (!is_numeric($contact_id)) {
             throw SMSPortalException::invalidParameter('Contact ID');
@@ -147,7 +152,8 @@ class ContactManager {
         ]);
     }
 
-    private function updateContact() {
+    private function updateContact()
+    {
         $data = [
             'contact_id' => $_POST['contact_id'] ?? '',
             'name' => Validator::validateUserInput($_POST['name'] ?? ''),
@@ -217,14 +223,16 @@ class ContactManager {
         ]);
     }
 
-    private function sendError($message) {
+    private function sendError($message)
+    {
         return json_encode([
             'status' => $message,
             'status_code' => 'error'
         ]);
     }
 
-    private function customLog($message) {
+    private function customLog($message)
+    {
         file_put_contents(
             'C:\\xampp\\htdocs\\dashboard-master\\debug.log',
             date('Y-m-d H:i:s') . " - $message\n",
@@ -244,4 +252,3 @@ try {
         'status_code' => 'error'
     ]);
 }
-?>
