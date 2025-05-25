@@ -12,10 +12,12 @@ use SMSPortalExceptions\SMSPortalException;
 
 header('Content-Type: application/json; charset=utf-8');
 
-class SMSManager {
+class SMSManager
+{
     private $conn;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
@@ -28,7 +30,8 @@ class SMSManager {
         }
     }
 
-    public function process() {
+    public function process()
+    {
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 throw SMSPortalException::invalidRequest();
@@ -59,7 +62,8 @@ class SMSManager {
         }
     }
 
-    private function sendBulkSMS() {
+    private function sendBulkSMS()
+    {
         $group = Validator::validateUserInput($_POST['group'] ?? '');
         $message = Validator::validateUserInput($_POST['message'] ?? '');
 
@@ -128,7 +132,8 @@ class SMSManager {
         ]);
     }
 
-    private function sendIndividualSMS() {
+    private function sendIndividualSMS()
+    {
         $phone_number = Validator::validateUserInput($_POST['phone_number'] ?? '');
         $message = Validator::validateUserInput($_POST['message'] ?? '');
 
@@ -167,30 +172,33 @@ class SMSManager {
         }
     }
 
-   private function checkBalance() {
-    $response = SMSClient::checkSMSBalance();
-    $responseData = json_decode($response, true);
+    private function checkBalance()
+    {
+        $response = SMSClient::checkSMSBalance();
+        $responseData = json_decode($response, true);
 
-    if (isset($responseData['status']) && $responseData['status'] === true && isset($responseData['message'])) {
-        return json_encode([
-            'status' => 'Balance fetched successfully',
-            'status_code' => 'success',
-            'balance' => $responseData['message']
-        ]);
-    } else {
-        $this->customLog("Balance check failed: " . $response);
-        throw SMSPortalException::databaseError('Failed to check balance: ' . ($responseData['message'] ?? 'Unknown error'));
+        if (isset($responseData['status']) && $responseData['status'] === true && isset($responseData['message'])) {
+            return json_encode([
+                'status' => 'Balance fetched successfully',
+                'status_code' => 'success',
+                'balance' => $responseData['message']
+            ]);
+        } else {
+            $this->customLog("Balance check failed: " . $response);
+            throw SMSPortalException::databaseError('Failed to check balance: ' . ($responseData['message'] ?? 'Unknown error'));
+        }
     }
-}
 
-    private function sendError($message) {
+    private function sendError($message)
+    {
         return json_encode([
             'status' => 'error',
             'status_code' => 'error'
         ]);
     }
 
-    private function customLog($message) {
+    private function customLog($message)
+    {
         file_put_contents(
             'C:\\xampp\\htdocs\\dashboard-master\\debug.log',
             date('Y-m-d H:i:s') . " - $message\n",
@@ -210,4 +218,3 @@ try {
         'status_code' => 'error'
     ]);
 }
-?>
