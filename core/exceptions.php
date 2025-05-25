@@ -20,6 +20,9 @@ class SMSPortalException extends \Exception
     const DUPLICATE_EMAIL = 3005;
     const DATABASE_ERROR = 4001;
     const NO_CONTACTS_ADDED = 5001;
+    const INVALID_PARAMETER = 6001;
+    const INVALID_ACTION = 6002;
+    const INVALID_SESSION = 7001;
 
     public static function invalidRequest(): self
     {
@@ -76,6 +79,11 @@ class SMSPortalException extends \Exception
         return new self('Invalid email format', self::INVALID_EMAIL_FORMAT);
     }
 
+    public static function duplicateContact(): self
+    {
+        return new self('A contact with this name already exists', self::DUPLICATE_PHONE | self::DUPLICATE_EMAIL);
+    }
+
     public static function duplicatePhone(): self
     {
         return new self('A contact with this phone number already exists', self::DUPLICATE_PHONE);
@@ -96,7 +104,7 @@ class SMSPortalException extends \Exception
         return new self('No contacts were added. ' . $errors, self::NO_CONTACTS_ADDED);
     }
 
-       public static function invalidParameter($param): self
+    public static function invalidParameter($param): self
     {
         return new self("Invalid parameter: {$param}", self::INVALID_PARAMETER);
     }
@@ -111,16 +119,23 @@ class SMSPortalException extends \Exception
         return new self('User session not authenticated', self::INVALID_SESSION);
     }
 
-    public static function duplicateGroup() {
+    public static function duplicateGroup()
+    {
         return new self('A group with this name already exists');
     }
 
-    public static function groupHasContacts() {
+    public static function groupNotFound()
+    {
+        return new self('Group not found');
+    }
+
+    public static function groupHasContacts()
+    {
         return new self('Cannot delete group because it contains contacts');
     }
 
-    public static function protectedGroup() {
+    public static function protectedGroup()
+    {
         return new self('Cannot delete the default "All" group');
     }
-    
 }
