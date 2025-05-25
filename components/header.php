@@ -98,8 +98,8 @@ if (!isset($_SESSION['USER_ID'])) {
                     class="dropdown-menu dropdown-menu-right"
                     aria-labelledby="navbarDropdownMenuLink"
                   >
-                    <a class="dropdown-item" href="#">Account Settings</a>
-                    <a class="dropdown-item" href="#">Contact Support Team</a>
+                    <a class="dropdown-item" href="account-settings.php">Account Settings</a>
+                    <a class="dropdown-item" href="contact-support.php">Contact Support Team</a>
                     <a class="dropdown-item" href="#" onclick="confirmLogout()">Log Out</a>
                   </div>
                 </li>
