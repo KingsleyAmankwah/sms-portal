@@ -1,7 +1,8 @@
 <?php
 
 /**
- * Author: [Your Name]
+ * Author: Kingsley Amankwah
+ * Date: 2025-05-20
  * Purpose: This file contains classes implementing functionality for the SMS Portal application.
  */
 
@@ -20,12 +21,14 @@ const CUSTOM_LOG = 'C:\xampp\htdocs\dashboard-master\debug.log';
  * Logs custom messages to a predefined log file
  * @param string $message The message to log
  */
-function customLog(string $message): void {
+function customLog(string $message): void
+{
     file_put_contents(CUSTOM_LOG, date('Y-m-d H:i:s') . " - $message\n", FILE_APPEND);
 }
 
 class DateFormatter implements IDateFormatter
-{  /**
+{
+    /**
      * Formats a date string to a more readable format (e.g., "1st January, 2023")
      * @param string|null $dateString The date string to format
      * @return string|null Formatted date or null if invalid input
@@ -45,7 +48,8 @@ class DateFormatter implements IDateFormatter
 }
 
 class MySQLDatabase implements IDatabase
-{   /**
+{
+    /**
      * Creates a new database connection
      * @return mysqli|false Returns mysqli connection object or false on failure
      */
@@ -91,7 +95,7 @@ class MySQLDatabase implements IDatabase
         return false;
     }
 
-     /**
+    /**
      * Executes an INSERT query with optional parameters
      * @param mysqli $conn Database connection
      * @param string|false $format Format string for bound parameters
@@ -120,7 +124,7 @@ class MySQLDatabase implements IDatabase
         return -1;
     }
 
-     /**
+    /**
      * Executes an UPDATE query with optional parameters
      * @param mysqli $conn Database connection
      * @param string|false $format Format string for bound parameters
@@ -149,7 +153,7 @@ class MySQLDatabase implements IDatabase
         return $error;
     }
 
-      /**
+    /**
      * Executes a DELETE query with optional parameters
      * @param mysqli $conn Database connection
      * @param string $query SQL query
@@ -181,7 +185,8 @@ class MySQLDatabase implements IDatabase
 }
 
 class Authentication implements IAuthentication
-{   /**
+{
+    /**
      * Creates a new CSRF token and stores it in the session
      * @return string The generated token
      */
@@ -203,43 +208,43 @@ class Authentication implements IAuthentication
     }
 
     /**
- * Validates a CSRF token against the one stored in session
- * @param string $token The token to validate
- * @return bool True if valid, false otherwise
- */
-public static function validateToken($token): bool
-{
-    $isValid = false;
-    
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        customLog("validateToken: Session not active");
-        session_start();
-    }
+     * Validates a CSRF token against the one stored in session
+     * @param string $token The token to validate
+     * @return bool True if valid, false otherwise
+     */
+    public static function validateToken($token): bool
+    {
+        $isValid = false;
 
-    // Check session token exists and matches
-    if (isset($_SESSION['csrf_token']) && $_SESSION['csrf_token'] === $token) {
-        $parts = explode('|', self::urlSafeDecode($token));
-        
-        // Verify token structure
-        if (count($parts) === 3) {
-            $hash = hash_hmac('sha256', $parts[1] . $parts[2], CSRF_TOKEN_SECRET, true);
-            
-            // Verify token hash
-            if (hash_equals($hash, self::urlSafeDecode($parts[0]))) {
-                customLog("CSRF token validated successfully: $token");
-                $isValid = true;
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            customLog("validateToken: Session not active");
+            session_start();
+        }
+
+        // Check session token exists and matches
+        if (isset($_SESSION['csrf_token']) && $_SESSION['csrf_token'] === $token) {
+            $parts = explode('|', self::urlSafeDecode($token));
+
+            // Verify token structure
+            if (count($parts) === 3) {
+                $hash = hash_hmac('sha256', $parts[1] . $parts[2], CSRF_TOKEN_SECRET, true);
+
+                // Verify token hash
+                if (hash_equals($hash, self::urlSafeDecode($parts[0]))) {
+                    customLog("CSRF token validated successfully: $token");
+                    $isValid = true;
+                } else {
+                    customLog("CSRF token invalid: Hash mismatch");
+                }
             } else {
-                customLog("CSRF token invalid: Hash mismatch");
+                customLog("CSRF token invalid: Incorrect part count");
             }
         } else {
-            customLog("CSRF token invalid: Incorrect part count");
+            customLog("CSRF token invalid: Session token mismatch. Submitted: $token, Session: " . ($_SESSION['csrf_token'] ?? 'none'));
         }
-    } else {
-        customLog("CSRF token invalid: Session token mismatch. Submitted: $token, Session: " . ($_SESSION['csrf_token'] ?? 'none'));
-    }
 
-    return $isValid;
-}
+        return $isValid;
+    }
 
     /**
      * URL-safe base64 encoding
@@ -264,7 +269,8 @@ public static function validateToken($token): bool
 
 
 class Validator implements IValidator
-{    /**
+{
+    /**
      * Sanitizes and validates user input
      * @param string $data Input data to validate
      * @return string Sanitized data
@@ -285,7 +291,7 @@ class Validator implements IValidator
         return $data;
     }
 
-     /**
+    /**
      * Validates user login credentials
      * @param mysqli $conn Database connection
      * @param string $username Username to validate
@@ -315,13 +321,13 @@ class Validator implements IValidator
                 $_SESSION['ROLE'] = $user['role'];
                 $_SESSION['USERNAME'] = $user['username'];
                 unset($_SESSION['csrf_token']);
-                
+
                 $updateResult = MySQLDatabase::sqlUpdate($conn, 'UPDATE users SET last_login = NOW() WHERE id = ?', 'i', $user['id']);
                 if ($updateResult !== true) {
                     $_SESSION['status'] = "Failed to update last_login for user";
                     $_SESSION['status_code'] = "info";
                 }
-                
+
                 $res->free_result();
                 header('Location: ' . DASHBOARD_PAGE);
                 exit;
@@ -340,7 +346,8 @@ class Validator implements IValidator
 }
 
 class UIActions implements IUIActions
-{   /**
+{
+    /**
      * Loads and returns spinner HTML content
      * @return string Spinner HTML
      */
@@ -349,10 +356,9 @@ class UIActions implements IUIActions
         ob_start();
         include '../assets/loader/spinner.html';
         return ob_get_clean();
-       
     }
 
-     /**
+    /**
      * Generates JavaScript code to show a SweetAlert popup
      * @param string $title Alert title
      * @param string $message Alert message
@@ -379,7 +385,8 @@ class UIActions implements IUIActions
 }
 
 class SMSClient implements ISMSClient
-{   /**
+{
+    /**
      * Sends bulk SMS messages
      * @param array $numbersArray Array of phone numbers
      * @param string $message Message to send
@@ -408,7 +415,7 @@ class SMSClient implements ISMSClient
             CURLOPT_POSTFIELDS => $jsonData,
             CURLOPT_HTTPHEADER => [
                 "Accept: */*",
-                "Authorization: Basic " . SMS_TOKEN,
+                "Authorization: Basic " . SMS_API_TOKEN,
                 "Content-Type: application/json"
             ],
         ]);
@@ -424,16 +431,18 @@ class SMSClient implements ISMSClient
         return trim($response, " \t\n\r\0\x0BNULL");
     }
 
-     /**
+    /**
      * Checks SMS account balance
      * @return string API response or error message
      */
     public static function checkSMSBalance()
     {
         $curl = curl_init();
+        $username = SMS_API_USERNAME;
+        $password = SMS_API_PASSWORD;
 
         curl_setopt_array($curl, [
-            CURLOPT_URL => "https://api.giantsms.com/api/v1/balance",
+            CURLOPT_URL => "https://api.giantsms.com/api/v1/balance?username=$username&password=$password",
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -442,7 +451,6 @@ class SMSClient implements ISMSClient
             CURLOPT_CUSTOMREQUEST => "GET",
             CURLOPT_HTTPHEADER => [
                 "Accept: */*",
-                "Authorization: Basic " . SMS_TOKEN,
                 "Content-Type: application/json"
             ],
         ]);
