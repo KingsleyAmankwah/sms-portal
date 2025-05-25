@@ -11,10 +11,12 @@ use SMSPortalExceptions\SMSPortalException;
 
 header('Content-Type: application/json; charset=utf-8');
 
-class GroupManager {
+class GroupManager
+{
     private $conn;
 
-    public function __construct() {
+    public function __construct()
+    {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             session_start();
         }
@@ -27,7 +29,8 @@ class GroupManager {
         }
     }
 
-    public function process() {
+    public function process()
+    {
         try {
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 throw SMSPortalException::invalidRequest();
@@ -60,7 +63,8 @@ class GroupManager {
         }
     }
 
-    private function fetchGroups() {
+    private function fetchGroups()
+    {
         $query = 'SELECT g.id, g.name, COUNT(c.id) as contact_count 
                   FROM groups g 
                   LEFT JOIN contacts c ON g.name = c.group AND c.user_id = ? 
@@ -85,7 +89,8 @@ class GroupManager {
         ]);
     }
 
-    private function createGroup() {
+    private function createGroup()
+    {
         $group_name = Validator::validateUserInput($_POST['group_name'] ?? '');
         if (empty($group_name)) {
             throw SMSPortalException::requiredFields();
@@ -115,7 +120,7 @@ class GroupManager {
             $group_name
         );
 
-        if ($result !== true) {
+        if ($result === -1 || $this->conn->affected_rows === 0) {
             throw SMSPortalException::databaseError('Failed to create group');
         }
 
@@ -125,7 +130,8 @@ class GroupManager {
         ]);
     }
 
-    private function updateGroup() {
+    private function updateGroup()
+    {
         $group_id = $_POST['group_id'] ?? '';
         $group_name = Validator::validateUserInput($_POST['group_name'] ?? '');
 
@@ -209,7 +215,8 @@ class GroupManager {
         ]);
     }
 
-    private function deleteGroup() {
+    private function deleteGroup()
+    {
         $group_id = $_POST['group_id'] ?? '';
         if (!is_numeric($group_id)) {
             throw SMSPortalException::invalidParameter('Group ID');
@@ -292,14 +299,16 @@ class GroupManager {
         ]);
     }
 
-    private function sendError($message) {
+    private function sendError($message)
+    {
         return json_encode([
             'status' => $message,
             'status_code' => 'error'
         ]);
     }
 
-    private function customLog($message) {
+    private function customLog($message)
+    {
         file_put_contents(
             'C:\\xampp\\htdocs\\dashboard-master\\debug.log',
             date('Y-m-d H:i:s') . " - $message\n",
@@ -319,4 +328,3 @@ try {
         'status_code' => 'error'
     ]);
 }
-?>
