@@ -57,7 +57,9 @@ if (!isset($_SESSION['USER_ID'])) {
                 <span class="navbar-toggler-bar bar3"></span>
               </button>
             </div>
-            <a class="navbar-brand" href="javascript:;"> SMS Portal</a>
+            <a class="navbar-brand" href="javascript:;">
+              <?php echo htmlspecialchars($pageTitle); ?>
+            </a>
           </div>
           <button
             class="navbar-toggler"
