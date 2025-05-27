@@ -5,15 +5,6 @@ include_once '../components/header.php';
 
 use SMSPortalExtensions\Authentication;
 
-// Ensure customLog is defined
-if (!function_exists('customLog')) {
-    define('CUSTOM_LOG', 'C:\xampp\htdocs\dashboard-master\debug.log');
-    function customLog($message)
-    {
-        file_put_contents(CUSTOM_LOG, date('Y-m-d H:i:s') . " - $message\n", FILE_APPEND);
-    }
-}
-
 // Generate CSRF token
 $csrf_token = $_SERVER['REQUEST_METHOD'] === 'GET'
     ? Authentication::createToken()
