@@ -1,6 +1,7 @@
 <?php
+$pageTitle = 'Groups Management';
 require_once __DIR__ . '/../vendor/autoload.php';
-include '../components/header.php';
+include_once '../components/header.php';
 
 use SMSPortalExtensions\Authentication;
 

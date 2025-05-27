@@ -1,4 +1,5 @@
 <?php
+$pageTitle = 'Send SMS';
 require_once __DIR__ . '/../vendor/autoload.php';
 include_once '../components/header.php';
 

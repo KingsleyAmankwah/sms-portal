@@ -1,5 +1,6 @@
 <?php
-include '../components/header.php';
+$pageTitle = 'Upload Contacts';
+include_once '../components/header.php';
 
 use SMSPortalExtensions\Authentication;
 use SMSPortalExtensions\MySQLDatabase;

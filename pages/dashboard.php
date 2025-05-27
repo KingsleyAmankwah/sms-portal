@@ -1,6 +1,7 @@
 <?php
-include '../components/header.php';
 $pageTitle = 'Dashboard';
+include_once '../components/header.php';
+
 
 use SMSPortalExtensions\Authentication;
 use SMSPortalExtensions\MySQLDatabase;
