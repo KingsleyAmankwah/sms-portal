@@ -77,7 +77,6 @@ class SupportManager
                     'allow_self_signed' => true
                 )
             );
-            // $mail->setFrom('SUPPORT_EMAIL', 'No-Reply Support System');
             $mail->addAddress(SUPPORT_EMAIL);
             $mail->Subject = "Support Request: $subject";
             $mail->isHTML(true);
