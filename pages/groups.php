@@ -154,20 +154,20 @@ $csrf_token = $_SERVER['REQUEST_METHOD'] === 'GET'
                         tbody.empty();
                         if (response.groups && response.groups.length > 0) {
                             response.groups.forEach(group => {
-                                const isAllGroup = group.name.toLowerCase() === 'all';
+                                const isAllGroup = group.name.toLowerCase() === 'all contacts';
                                 tbody.append(`
                                 <tr data-group-id="${group.id}">
                                     <td>${group.name || ''}</td>
                                     <td>${group.contact_count || 0}</td>
                                     <td class="text-center">
                                         <button class="btn btn-sm btn-primary action-btn edit-btn ${isAllGroup ? 'disabled' : ''}" 
-                                                data-id="${group.id}" 
+                                                data-id="${group.id}"
                                                 data-name="${group.name || ''}"
                                                 ${isAllGroup ? 'disabled title="Cannot edit default group"' : ''}>
                                             Edit
                                         </button>
                                         <button class="btn btn-sm btn-danger action-btn delete-btn ${isAllGroup ? 'disabled' : ''}" 
-                                                data-id="${group.id}" 
+                                                data-id="${group.id}"
                                                 data-name="${group.name || ''}"
                                                 ${isAllGroup ? 'disabled title="Cannot delete default group"' : ''}>
                                             Delete
@@ -197,7 +197,7 @@ $csrf_token = $_SERVER['REQUEST_METHOD'] === 'GET'
                             const groupName = $(this).data('name');
                             Swal.fire({
                                 title: 'Are you sure?',
-                                text: `Deleting "${groupName}" will reassign its contacts to the "All" group.`,
+                                text: `Deleting "${groupName}" will reassign its contacts to the "All Contacts" group.`,
                                 icon: 'warning',
                                 showCancelButton: true,
                                 confirmButtonText: 'Yes, delete it!',
