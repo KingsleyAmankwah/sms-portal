@@ -69,7 +69,7 @@ class SupportManager
             $mail->Username = SUPPORT_EMAIL;
             $mail->Password = SUPPORT_EMAIL_PASSWORD;
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-            $mail->Port = 465;
+            $mail->Port = SMTP_PORT;
             $mail->SMTPOptions = array(
                 'ssl' => array(
                     'verify_peer' => false,
