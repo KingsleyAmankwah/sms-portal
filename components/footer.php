@@ -44,10 +44,6 @@
     <!--  Notifications Plugin    -->
     <script src="../assets/js/plugins/bootstrap-notify.js"></script>
     <script src="../assets/demo/demo.js"></script>
-    <!-- DataTables -->
-    <script src="../assets/datatables.net/js/jquery.dataTables.min.js"></script>
-    <script src="../assets/dataTables/js/dataTables.bootstrap.min.js"></script>
-    <script src="../assets/sweetalert/sweetalert2.all.min.js"></script>
 
     <!-- Logout Confirmation -->
     <script>
@@ -69,20 +65,7 @@
       }
     </script>
 
-    <!-- Data Table Initialize -->
-    <script>
-      $(function() {
-        $('#example1').DataTable()
-        $('#example2').DataTable({
-          'paging': true,
-          'lengthChange': false,
-          'searching': false,
-          'ordering': true,
-          'info': true,
-          'autoWidth': false
-        })
-      })
-    </script>
+
     </body>
 
     </html>

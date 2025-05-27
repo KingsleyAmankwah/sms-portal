@@ -36,9 +36,6 @@ if (!isset($_SESSION['USER_ID'])) {
   <link href="../assets/css/bootstrap.min.css" rel="stylesheet" />
   <link href="../assets/css/paper-dashboard.css?v=2.0.1" rel="stylesheet" />
 
-  <!-- DataTables -->
-  <link rel="stylesheet" href="../assets/dataTables/css/dataTables.bootstrap.min.css" />
-  <link rel="stylesheet" href="../assets/dataTables/css/dataTables.bootstrap.css" />
 </head>
 
 <body class="">
@@ -58,7 +55,7 @@ if (!isset($_SESSION['USER_ID'])) {
               </button>
             </div>
             <a class="navbar-brand" href="javascript:;">
-              <?php echo htmlspecialchars($pageTitle); ?>
+              <?php echo htmlspecialchars($pageTitle); ?> | SMS Portal
             </a>
           </div>
           <button
