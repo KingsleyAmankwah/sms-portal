@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
-include '../components/header.php';
+include_once '../components/header.php';
 
 use SMSPortalExtensions\Authentication;
 use SMSPortalExtensions\MySQLDatabase;
@@ -87,7 +87,7 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                                 <small class="form-text text-muted">Characters: <span id="sms-char-count">0</span>/160</small>
                             </div>
                             <div class="form-group">
-                                <label>SMS Balance</label>
+                                <label for="">SMS Balance</label>
                                 <p id="sms-balance-individual" class="form-text">Checking balance...</p>
                             </div>
                             <button type="submit" class="btn btn-primary w-100" id="send-sms-btn">
@@ -104,7 +104,6 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                             <div class="form-group">
                                 <label for="bulk-group">Select Group</label>
                                 <select class="form-control" name="group" id="bulk-group" required>
-                                    <option value="All" <?php echo $preselected_group === 'All' ? 'selected' : ''; ?>>All Contacts</option>
                                     <?php foreach ($groups as $g): ?>
                                         <option value="<?php echo htmlspecialchars($g); ?>"
                                             <?php echo $g === $preselected_group ? 'selected' : ''; ?>>
@@ -119,7 +118,7 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                                 <small class="form-text text-muted">Characters: <span id="bulk-char-count">0</span>/160</small>
                             </div>
                             <div class="form-group">
-                                <label>SMS Balance</label>
+                                <label for="">SMS Balance</label>
                                 <p id="sms-balance-bulk" class="form-text">Checking balance...</p>
                             </div>
                             <button type="submit" class="btn btn-primary w-100" id="bulk-sms-btn">
@@ -134,7 +133,7 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
     </div>
 </div>
 
-<?php include '../components/footer.php'; ?>
+<?php include_once '../components/footer.php'; ?>
 
 <style>
     .card {
