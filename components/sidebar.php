@@ -3,13 +3,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
 <div class="sidebar" data-color="white" data-active-color="danger">
   <div class="logo">
-    <a href="https://www.creative-tim.com" class="simple-text logo-mini">
+    <a href="https://www.teksed.com" class="simple-text logo-mini">
       <div class="logo-image-small">
-        <img src="../assets/img/logo-small.png" alt="" />
+        <img src="../assets/img/teksed-logo.png" alt="" />
       </div>
     </a>
     <a
-      href="https://www.creative-tim.com"
+      href="https://www.teksed.com"
       class="simple-text logo-normal">
       SMS Portal
 
