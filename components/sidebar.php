@@ -50,10 +50,22 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           <p>Send SMS</p>
         </a>
       </li>
+      <li class="<?= ($currentPage == 'account-settings.php') ? 'active' : '' ?>">
+        <a href="./account-settings.php">
+          <i class="nc-icon nc-settings-gear-65"></i>
+          <p>Account Settings</p>
+        </a>
+      </li>
+      <li class="<?= ($currentPage == 'contact-support.php') ? 'active' : '' ?>">
+        <a href="./contact-support.php">
+          <i class="nc-icon nc-headphones"></i>
+          <p>Contact Support</p>
+        </a>
+      </li>
 
       <li class="active-pro">
         <a href="#" onclick="confirmLogout()">
-          <i class="nc-icon nc-spaceship"></i>
+          <i class="nc-icon nc-button-power"></i>
           <p>Log Out</p>
         </a>
       </li>
