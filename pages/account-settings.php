@@ -6,14 +6,6 @@ include_once '../components/header.php';
 use SMSPortalExtensions\Authentication;
 use SMSPortalExtensions\MySQLDatabase;
 
-// Ensure user is logged in
-if (!isset($_SESSION['USER_ID'])) {
-    $_SESSION['status'] = "Please log in to access account settings";
-    $_SESSION['status_code'] = "error";
-    header('Location: ' . INDEX_PAGE);
-    exit;
-}
-
 // Fetch user details
 $conn = MySQLDatabase::createConnection();
 $user = null;
@@ -74,7 +66,7 @@ $pageTitle = 'Account Settings';
     </div>
 </div>
 
-<?php include '../components/footer.php'; ?>
+<?php include_once '../components/footer.php'; ?>
 
 <style>
     .card {
@@ -124,9 +116,30 @@ $pageTitle = 'Account Settings';
                         confirmButtonText: 'OK'
                     }).then(() => {
                         if (data.status_code === 'success') {
-                            form.reset();
-                            form.querySelector('input[name="username"]').value = '<?php echo htmlspecialchars($user['username'] ?? ''); ?>';
-                            form.querySelector('input[name="email"]').value = '<?php echo htmlspecialchars($user['email'] ?? ''); ?>';
+                            // Fetch updated user data
+                            fetch('../controllers/process_account.php', {
+                                    method: 'POST',
+                                    body: JSON.stringify({
+                                        action: 'get_user_details',
+                                        csrf_token: formData.get('csrf_token')
+                                    }),
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    }
+                                })
+                                .then(response => response.json())
+                                .then(userData => {
+                                    if (userData.status_code === 'success') {
+                                        // Update form with new data
+                                        form.querySelector('input[name="username"]').value = userData.data.username;
+                                        form.querySelector('input[name="email"]').value = userData.data.email;
+
+                                        // Clear password fields
+                                        form.querySelector('input[name="password"]').value = '';
+                                        form.querySelector('input[name="confirm_password"]').value = '';
+                                    }
+                                })
+                                .catch(error => console.error('Error fetching updated user data:', error));
                         }
                     });
                 })

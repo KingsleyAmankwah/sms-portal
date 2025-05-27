@@ -6,13 +6,6 @@ include_once '../components/header.php';
 use SMSPortalExtensions\Authentication;
 use SMSPortalExtensions\MySQLDatabase;
 
-// Ensure user is logged in
-if (!isset($_SESSION['USER_ID'])) {
-  $_SESSION['status'] = "Please log in to contact support";
-  $_SESSION['status_code'] = "error";
-  header('Location: ' . INDEX_PAGE);
-  exit;
-}
 
 // Fetch user details
 $conn = MySQLDatabase::createConnection();
@@ -42,45 +35,41 @@ $pageTitle = 'Contact Support';
   <div class="row">
     <div class="col-md-8 col-md-offset-2">
       <div class="card">
-        <div class="card-header">
-          <h4 class="card-title">Contact Support</h4>
-        </div>
-        <div class="card-body">
-          <form id="contact-support-form">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-            <input type="hidden" name="action" value="send_support_email">
-            <div class="form-group">
-              <label for="name">Full Name</label>
-              <input type="text" class="form-control" id="name" name="name"
-                value="<?php echo htmlspecialchars($user['username'] ?? ''); ?>" required>
-            </div>
-            <div class="form-group">
-              <label for="email">Email Address</label>
-              <input type="email" class="form-control" id="email" name="email"
-                value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" required>
-            </div>
-            <div class="form-group">
-              <label for="subject">Subject</label>
-              <input type="text" class="form-control" id="subject" name="subject"
-                placeholder="Enter subject" required>
-            </div>
-            <div class="form-group">
-              <label for="message">Message</label>
-              <textarea class="form-control" id="message" name="message" rows="5"
-                placeholder="Describe your issue" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary btn-fill btn-block">
-              <span id="submit-btn-text">Send Support Request</span>
-              <span class="spinner-border spinner-border-sm hidden" id="submit-spinner"></span>
-            </button>
-          </form>
-        </div>
+        <h4 class="card-title">Contact Support</h4>
+        <form id="contact-support-form">
+          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
+          <input type="hidden" name="action" value="send_support_email">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" class="form-control" id="name" name="name"
+              value="<?php echo htmlspecialchars($user['username'] ?? ''); ?>" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" class="form-control" id="email" name="email"
+              value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>" required>
+          </div>
+          <div class="form-group">
+            <label for="subject">Subject</label>
+            <input type="text" class="form-control" id="subject" name="subject"
+              placeholder="Enter subject" required>
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea class="form-control" id="message" name="message" rows="5"
+              placeholder="Describe your issue" required></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-fill btn-block">
+            <span id="submit-btn-text">Send Support Request</span>
+            <span class="spinner-border spinner-border-sm hidden" id="submit-spinner"></span>
+          </button>
+        </form>
       </div>
     </div>
   </div>
 </div>
 
-<?php include '../components/footer.php'; ?>
+<?php include_once '../components/footer.php'; ?>
 
 <style>
   .card {
