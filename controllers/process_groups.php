@@ -154,7 +154,7 @@ class GroupManager
         $current_name = $group->fetch_assoc()['name'];
         $group->free_result();
 
-        if (strtolower($current_name) === 'all') {
+        if (strtolower($current_name) === 'all contacts') {
             throw SMSPortalException::protectedGroup();
         }
 
@@ -222,7 +222,7 @@ class GroupManager
             throw SMSPortalException::invalidParameter('Group ID');
         }
 
-        // Get group name and check if it's "All"
+        // Get group name and check if it's "All Contacts"
         $group = MySQLDatabase::sqlSelect(
             $this->conn,
             'SELECT name FROM groups WHERE id = ? AND user_id = ?',
@@ -237,29 +237,11 @@ class GroupManager
         $group_name = $group->fetch_assoc()['name'];
         $group->free_result();
 
-        if (strtolower($group_name) === 'all') {
+        if (strtolower($group_name) === 'all contacts') {
             throw SMSPortalException::protectedGroup();
         }
 
-        // Option 2 (Prevent deletion if contacts exist) 
-        /*
-        $check = MySQLDatabase::sqlSelect(
-            $this->conn,
-            'SELECT COUNT(*) as count FROM contacts WHERE user_id = ? AND `group` = (SELECT name FROM groups WHERE id = ?)',
-            'ii',
-            $_SESSION['USER_ID'],
-            $group_id
-        );
-        if ($check && $check->fetch_assoc()['count'] > 0) {
-            $check->free_result();
-            throw SMSPortalException::groupHasContacts();
-        }
-        if ($check) {
-            $check->free_result();
-        }
-        */
-
-        // Option 1: Reassign contacts to "All"
+        // Option 1: Reassign contacts to "All Contacts"
         $this->conn->begin_transaction();
         try {
             // Reassign contacts to "All"
@@ -267,7 +249,7 @@ class GroupManager
                 $this->conn,
                 'UPDATE contacts SET `group` = ? WHERE `group` = ? AND user_id = ?',
                 'ssi',
-                'All',
+                'All Contacts',
                 $group_name,
                 $_SESSION['USER_ID']
             );
@@ -292,6 +274,24 @@ class GroupManager
             $this->conn->rollback();
             throw $e;
         }
+
+        // Option 2 (Prevent deletion if contacts exist) 
+        /*
+        $check = MySQLDatabase::sqlSelect(
+            $this->conn,
+            'SELECT COUNT(*) as count FROM contacts WHERE user_id = ? AND `group` = (SELECT name FROM groups WHERE id = ?)',
+            'ii',
+            $_SESSION['USER_ID'],
+            $group_id
+        );
+        if ($check && $check->fetch_assoc()['count'] > 0) {
+            $check->free_result();
+            throw SMSPortalException::groupHasContacts();
+        }
+        if ($check) {
+            $check->free_result();
+        }
+        */
 
         return json_encode([
             'status' => 'Group deleted successfully',
