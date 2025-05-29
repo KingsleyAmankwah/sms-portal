@@ -387,12 +387,12 @@ class UIActions implements IUIActions
 class SMSClient implements ISMSClient
 {
     /**
-     * Sends bulk SMS messages
+     * Sends SMS messages
      * @param array $numbersArray Array of phone numbers
      * @param string $message Message to send
      * @return string API response or error message
      */
-    public static function sendBulkSMS($numbersArray, $message)
+    public static function sendSMS($numbersArray, $message)
     {
         $curl = curl_init();
 
