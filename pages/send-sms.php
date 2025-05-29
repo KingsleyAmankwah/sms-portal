@@ -275,7 +275,7 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                     } else {
                         Swal.fire({
                             title: 'Error',
-                            text: response.message || response.status || 'Failed to send SMS',
+                            text: 'Failed to send SMS, Contact Support team.',
                             icon: 'error',
                             confirmButtonText: 'OK'
                         });
