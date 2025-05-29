@@ -114,7 +114,7 @@ class SMSManager
         $batches = array_chunk($numbers, $batchSize);
 
         foreach ($batches as $batch) {
-            $response = SMSClient::sendBulkSMS($batch, $message);
+            $response = SMSClient::sendSMS($batch, $message);
             $responseData = json_decode($response, true);
 
             if (isset($responseData['status']) && $responseData['status'] === 'success') {
