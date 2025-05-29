@@ -35,6 +35,6 @@ interface IUIActions
 
 interface ISMSClient
 {
-    public static function sendBulkSMS($numbersArray, $message);
+    public static function sendSMS($numbersArray, $message);
     public static function checkSMSBalance();
 }
