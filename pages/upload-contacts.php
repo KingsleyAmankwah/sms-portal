@@ -62,19 +62,22 @@ $individual_data = [
                             <label for="phone_number">Phone Number (e.g., +233123456789)</label>
                             <input type="text" class="form-control" name="phone_number" id="phone_number" placeholder="Enter phone number" required value="<?php echo htmlspecialchars($individual_data['phone_number']); ?>">
                         </div>
-                        <div class="form-group">
-                            <label for="email">Email (optional)</label>
-                            <input type="email" class="form-control" name="email" id="email" placeholder="Enter email" value="<?php echo htmlspecialchars($individual_data['email']); ?>">
-                        </div>
+
                         <div class="form-group">
                             <label for="group">Group</label>
-                            <select class="form-control" name="group" id="group">
+                            <select class="form-control" name="group" id="group" required>
+                                <option value="">Select contact group</option>
                                 <?php foreach ($groups as $g): ?>
                                     <option value="<?php echo htmlspecialchars($g); ?>" <?php echo $g === $individual_data['group'] ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($g); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email (optional)</label>
+                            <input type="email" class="form-control" name="email" id="email" placeholder="Enter email" value="<?php echo htmlspecialchars($individual_data['email']); ?>">
                         </div>
                         <div class="form-group">
                             <label for="company">Company (optional)</label>
@@ -96,8 +99,9 @@ $individual_data = [
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
                         <input type="hidden" name="upload_type" value="bulk">
                         <div class="form-group">
-                            <label for="group_bulk">Group (applied if not specified in file)</label>
+                            <label for="group_bulk">Contacts Group</label>
                             <select class="form-control" name="group" id="group_bulk">
+                                <option value="">Select contact group</option>
                                 <?php foreach ($groups as $g): ?>
                                     <option value="<?php echo htmlspecialchars($g); ?>" <?php echo $g === 'All' ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($g); ?>
@@ -108,7 +112,7 @@ $individual_data = [
                         <div class="form-group">
                             <label>Upload File (CSV, XLS, XLSX)</label>
                             <div class="upload-area text-center p-4 border rounded">
-                                <p><a href="#" onclick="$('#file').click()">Browse</a> device for your file</p>
+                                <p><a href="#" onclick="$('#file').click()" style="text-decoration: underline;">Browse</a> device for your file</p>
                                 <i class="nc-icon nc-cloud-upload-94" style="font-size: 2em;"></i>
                                 <input type="file" class="form-control-file" name="file" id="file" accept=".csv,.xls,.xlsx" style="display:none;" required onchange="$('#file-name').text(this.files[0].name)">
                                 <p id="file-name" class="mt-2"></p>
@@ -122,7 +126,7 @@ $individual_data = [
                             <li>Phone numbers should include country code (e.g., +233)</li>
                             <li>Optional columns: Email, Group, Company, Notes</li>
                         </ul>
-                        <p><a href="../assets/files/sample_contacts.xlsx" download>Download Sample Excel File</a></p>
+                        <p><a href="../assets/files/sample_contacts.xlsx" style="text-decoration: underline;" download>Download Sample Excel File</a></p>
                         <button type="submit" class="btn btn-primary w-100" id="import-btn">
                             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true" id="spinner-import"></span>
                             <span id="btn-text-import">Import Contacts</span>
@@ -136,6 +140,24 @@ $individual_data = [
 </div>
 
 <style>
+    a {
+        color: #390546;
+
+    }
+
+    a:hover {
+        color: #4b0a5e !important;
+    }
+
+    .btn-primary {
+        background-color: #390546;
+        border-color: #390546;
+    }
+
+    .btn-primary:hover {
+        background-color: #4b0a5e !important;
+    }
+
     .upload-area {
         background: #f8f9fa;
         border: 2px dashed #ccc;
