@@ -117,7 +117,28 @@ class SMSManager
             $response = SMSClient::sendSMS($batch, $message);
             $responseData = json_decode($response, true);
 
-            if (isset($responseData['status']) && $responseData['status'] === 'success') {
+            $status = (isset($responseData['status']) && $responseData['status'] === true) ? 'success' : 'failed';
+            $error_message = $status === 'failed' ? ($responseData['message'] ?? 'Unknown error') : null;
+
+            // Log each number in the batch
+            foreach ($batch as $phone) {
+                $insert_id = MySQLDatabase::sqlInsert(
+                    $this->conn,
+                    'INSERT INTO sms_logs (user_id, phone_number, message, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)',
+                    'issss',
+                    $_SESSION['USER_ID'],
+                    $phone,
+                    $message,
+                    $status,
+                    $error_message
+                );
+                if ($insert_id === -1) {
+                    $this->customLog("Failed to log SMS for $phone");
+                    throw SMSPortalException::databaseError('Failed to log SMS');
+                }
+            }
+
+            if ($status === 'success') {
                 $successCount += count($batch);
             } else {
                 $this->customLog("SMS batch failed: " . $response);
@@ -150,18 +171,35 @@ class SMSManager
             throw SMSPortalException::invalidPhoneFormat();
         }
 
-        // Check balance
         $balanceResponse = SMSClient::checkSMSBalance();
         $balanceData = json_decode($balanceResponse, true);
         if (!isset($balanceData['message']) || $balanceData['message'] < 1) {
             throw SMSPortalException::databaseError('Insufficient SMS balance');
         }
 
-        // Send SMS
-        $response = SMSClient::sendBulkSMS([$phone], $message);
+        $response = SMSClient::sendSMS([$phone], $message);
         $responseData = json_decode($response, true);
 
-        if (isset($responseData['status']) && $responseData['status'] === 'success') {
+        $status = (isset($responseData['status']) && $responseData['status'] === true) ? 'success' : 'failed';
+        $error_message = $status === 'failed' ? ($responseData['message'] ?? 'Unknown error') : null;
+
+        // Log SMS attempt
+        $insert_id = MySQLDatabase::sqlInsert(
+            $this->conn,
+            'INSERT INTO sms_logs (user_id, phone_number, message, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)',
+            'issss',
+            $_SESSION['USER_ID'],
+            $phone,
+            $message,
+            $status,
+            $error_message
+        );
+        if ($insert_id === -1) {
+            $this->customLog("Failed to log SMS for $phone");
+            throw SMSPortalException::databaseError('Failed to log SMS');
+        }
+
+        if ($status === 'success') {
             return json_encode([
                 'status' => 'SMS sent successfully',
                 'status_code' => 'success'
@@ -171,6 +209,7 @@ class SMSManager
             throw SMSPortalException::databaseError('Failed to send SMS: ' . ($responseData['message'] ?? 'Unknown error'));
         }
     }
+
 
     private function checkBalance()
     {
