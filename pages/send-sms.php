@@ -105,6 +105,7 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                             <div class="form-group">
                                 <label for="bulk-group">Select Group</label>
                                 <select class="form-control" name="group" id="bulk-group" required>
+                                    <option value="">Select contact group</option>
                                     <?php foreach ($groups as $g): ?>
                                         <option value="<?php echo htmlspecialchars($g); ?>"
                                             <?php echo $g === $preselected_group ? 'selected' : ''; ?>>
@@ -141,14 +142,21 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
         margin-bottom: 20px;
     }
 
+    a {
+        color: #390546;
+    }
+
+    a:hover {
+        color: #4b0a5e !important;
+    }
+
     .btn-primary {
         background-color: #390546;
         border-color: #390546;
     }
 
     .btn-primary:hover {
-        background-color: #4b0a5e;
-        border-color: #4b0a5e;
+        background-color: #4b0a5e !important;
     }
 
     .form-text {
