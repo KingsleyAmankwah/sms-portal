@@ -199,7 +199,7 @@ class ContactUploader
      */
     private function validateContact($data)
     {
-        if (empty($data['name']) || empty($data['phone_number'])) {
+        if (empty($data['name']) || empty($data['phone_number']) || empty($data['group'])) {
             throw SMSPortalException::requiredFields();
         }
 
@@ -360,6 +360,10 @@ class ContactUploader
             }
             if (empty($contactData['phone_number'])) {
                 throw new SMSPortalException($rowPrefix . "Phone number field is empty");
+            }
+
+            if (empty($contactData['group'])) {
+                throw new SMSPortalException($rowPrefix . "Group field is empty");
             }
 
             // Validate phone format
