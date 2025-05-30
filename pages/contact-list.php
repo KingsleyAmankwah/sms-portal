@@ -47,10 +47,17 @@ if ($conn) {
                             </select>
                         </div>
                     </div>
-                    <div class="table">
+                    <div class="table-container">
+                        <div id="loading-indicator" class="text-center py-4 d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="text-muted mt-2">Loading contacts...</p>
+                        </div>
                         <table class="table table-bordered table-hover">
                             <thead class="thead-light">
                                 <tr>
+                                    <th>Sn.</th>
                                     <th>Name</th>
                                     <th>Phone Number</th>
                                     <th class="text-center">Actions</th>
@@ -101,7 +108,7 @@ if ($conn) {
                     </div>
                     <div class="form-group">
                         <label for="edit-group">Group</label>
-                        <select class="form-control" name="group" id="edit-group">
+                        <select class="form-control" name="group" id="edit-group" required>
                             <?php foreach ($groups as $g): ?>
                                 <option value="<?php echo htmlspecialchars($g); ?>"><?php echo htmlspecialchars($g); ?></option>
                             <?php endforeach; ?>
@@ -131,9 +138,24 @@ if ($conn) {
 <?php include '../components/footer.php'; ?>
 
 <style>
-    .table-responsive {
-        min-height: 200px;
+    .btn-primary {
+        background-color: #390546;
     }
+
+    .btn-primary:hover {
+        background-color: #4a0a6b !important;
+    }
+
+    .btn-secondary,
+    .btn-danger {
+        background-color: #c73d6c;
+    }
+
+    .btn-secondary:hover,
+    .btn-danger:hover {
+        background-color: #a32b5a !important;
+    }
+
 
     .table th,
     .table td {
@@ -158,6 +180,70 @@ if ($conn) {
         padding: 20px;
         font-size: 1.1em;
     }
+
+    .page-item.active .page-link {
+        background-color: #390546;
+        border-color: #390546;
+    }
+
+    .page-link {
+        color: #390546;
+    }
+
+    .page-link:hover {
+        color: #4a0a6b;
+    }
+
+    .page-item.disabled .page-link:hover {
+        color: #6c757d;
+        background-color: transparent;
+        border-color: transparent;
+    }
+
+    .page-item.active .page-link:hover {
+        background-color: #4a0a6b;
+        border-color: #4a0a6b;
+    }
+
+    .page-item.active .page-link:focus {
+        box-shadow: 0 0 0 0.2rem rgba(57, 4, 70, 0.5);
+    }
+
+    .page-item .page-link {
+        border-radius: 0.25rem;
+    }
+
+    #loading-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .table-container {
+        position: relative;
+        min-height: 200px;
+    }
+
+    .table-fade {
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .table-fade.loading {
+        opacity: 0.5;
+    }
 </style>
 
 <script>
@@ -178,6 +264,18 @@ if ($conn) {
         let currentPage = 1;
         let itemsPerPage = 10;
         let searchQuery = '';
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const contactsTable = document.querySelector('.table');
+
+        function showLoading() {
+            loadingIndicator.classList.remove('d-none');
+            contactsTable.classList.add('table-fade', 'loading');
+        }
+
+        function hideLoading() {
+            loadingIndicator.classList.add('d-none');
+            contactsTable.classList.remove('table-fade', 'loading');
+        }
 
         // Load contacts on page load
         loadContacts();
@@ -218,6 +316,7 @@ if ($conn) {
         });
 
         function loadContacts() {
+            showLoading();
             $.ajax({
                 url: '../controllers/process_contacts.php',
                 type: 'POST',
@@ -230,13 +329,16 @@ if ($conn) {
                 },
                 dataType: 'json',
                 success: function(response) {
+                    hideLoading();
                     if (response.status_code === 'success') {
                         const tbody = $('#contacts-table-body');
                         tbody.empty();
                         if (response.contacts && response.contacts.length > 0) {
-                            response.contacts.forEach(contact => {
+                            response.contacts.forEach((contact, index) => {
+                                const rowNumber = (response.current_page - 1) * response.items_per_page + index + 1;
                                 tbody.append(`
                                 <tr data-contact-id="${contact.id}">
+                                    <td>${rowNumber}</td>
                                     <td>${contact.name || ''}</td>
                                     <td>${contact.phone_number || ''}</td>
                                     <td class="text-center">
@@ -291,6 +393,8 @@ if ($conn) {
                                 title: 'Are you sure?',
                                 text: 'This contact will be permanently deleted.',
                                 icon: 'warning',
+                                confirmButtonColor: '#c73d6c',
+                                cancelButtonColor: '#4a0a6b',
                                 showCancelButton: true,
                                 confirmButtonText: 'Yes, delete it!',
                                 cancelButtonText: 'Cancel'
@@ -310,6 +414,7 @@ if ($conn) {
                     }
                 },
                 error: function(xhr) {
+                    hideLoading();
                     Swal.fire({
                         title: 'Error',
                         text: 'Failed to load contacts: ' + (xhr.responseJSON?.status || 'Server error'),
@@ -379,7 +484,7 @@ if ($conn) {
                             title: 'Success',
                             text: response.status,
                             icon: 'success',
-                            confirmButtonText: 'OK'
+                            confirmButtonText: 'OK',
                         });
                     } else {
                         Swal.fire({
