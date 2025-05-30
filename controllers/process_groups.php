@@ -217,47 +217,90 @@ class GroupManager
 
     private function deleteGroup()
     {
-        $group_id = $_POST['group_id'] ?? '';
-        if (!is_numeric($group_id)) {
-            throw SMSPortalException::invalidParameter('Group ID');
+        $group_id = filter_input(INPUT_POST, 'group_id', FILTER_VALIDATE_INT);
+        $delete_action = $_POST['delete_action'] ?? 'delete';
+        $target_group_id = filter_input(INPUT_POST, 'target_group_id', FILTER_VALIDATE_INT);
+
+        if (!$group_id) {
+            throw SMSPortalException::invalidParameter('Invalid group ID');
         }
 
-        // Get group name and check if it's "All Contacts"
-        $group = MySQLDatabase::sqlSelect(
-            $this->conn,
-            'SELECT name FROM groups WHERE id = ? AND user_id = ?',
-            'ii',
-            $group_id,
-            $_SESSION['USER_ID']
-        );
-        if (!$group || $group->num_rows === 0) {
-            $group->free_result();
-            throw SMSPortalException::invalidParameter('Group not found');
-        }
-        $group_name = $group->fetch_assoc()['name'];
-        $group->free_result();
-
-        if (strtolower($group_name) === 'all contacts') {
-            throw SMSPortalException::protectedGroup();
+        if (!in_array($delete_action, ['move', 'delete'])) {
+            throw SMSPortalException::invalidParameter('Invalid delete action');
         }
 
-        // Option 1: Reassign contacts to "All Contacts"
+        // Start transaction
         $this->conn->begin_transaction();
+
         try {
-            // Reassign contacts to "All"
-            $result = MySQLDatabase::sqlUpdate(
+            // First get the group details
+            $group = MySQLDatabase::sqlSelect(
                 $this->conn,
-                'UPDATE contacts SET `group` = ? WHERE `group` = ? AND user_id = ?',
-                'ssi',
-                'All Contacts',
-                $group_name,
+                'SELECT id, name FROM groups WHERE id = ? AND user_id = ?',
+                'ii',
+                $group_id,
                 $_SESSION['USER_ID']
             );
-            if ($result !== true) {
-                throw SMSPortalException::databaseError('Failed to reassign contacts');
+
+            if (!$group || $group->num_rows === 0) {
+                throw SMSPortalException::invalidParameter('Group not found');
             }
 
-            // Delete the group
+            $group_data = $group->fetch_assoc();
+            $group->free_result();
+
+            // Handle contacts based on action
+            if ($delete_action === 'move') {
+                if (!$target_group_id) {
+                    throw SMSPortalException::invalidParameter('Target group is required for move action');
+                }
+
+                // Verify target group exists
+                $target_group = MySQLDatabase::sqlSelect(
+                    $this->conn,
+                    'SELECT name FROM groups WHERE id = ? AND user_id = ? AND id != ?',
+                    'iii',
+                    $target_group_id,
+                    $_SESSION['USER_ID'],
+                    $group_id
+                );
+
+                if (!$target_group || $target_group->num_rows === 0) {
+                    throw SMSPortalException::invalidParameter('Target group not found');
+                }
+
+                $target_name = $target_group->fetch_assoc()['name'];
+                $target_group->free_result();
+
+                // Move contacts to target group
+                $result = MySQLDatabase::sqlUpdate(
+                    $this->conn,
+                    'UPDATE contacts SET `group` = ? WHERE `group` = ? AND user_id = ?',
+                    'ssi',
+                    $target_name,
+                    $group_data['name'],
+                    $_SESSION['USER_ID']
+                );
+
+                if ($result === false) {
+                    throw SMSPortalException::databaseError('Failed to move contacts');
+                }
+            } else {
+                // Delete contacts in this group
+                $result = MySQLDatabase::sqlDelete(
+                    $this->conn,
+                    'DELETE FROM contacts WHERE `group` = ? AND user_id = ?',
+                    'si',
+                    $group_data['name'],
+                    $_SESSION['USER_ID']
+                );
+
+                if ($result === false) {
+                    throw SMSPortalException::databaseError('Failed to delete contacts');
+                }
+            }
+
+            // Finally delete the group
             $result = MySQLDatabase::sqlDelete(
                 $this->conn,
                 'DELETE FROM groups WHERE id = ? AND user_id = ?',
@@ -265,38 +308,23 @@ class GroupManager
                 $group_id,
                 $_SESSION['USER_ID']
             );
-            if ($result === -1 || $this->conn->affected_rows === 0) {
+
+            if ($result === false) {
                 throw SMSPortalException::databaseError('Failed to delete group');
             }
 
             $this->conn->commit();
+
+            return json_encode([
+                'status' => $delete_action === 'move' ?
+                    'Group deleted and contacts moved successfully' :
+                    'Group and contacts deleted successfully',
+                'status_code' => 'success'
+            ]);
         } catch (Exception $e) {
             $this->conn->rollback();
             throw $e;
         }
-
-        // Option 2 (Prevent deletion if contacts exist) 
-        /*
-        $check = MySQLDatabase::sqlSelect(
-            $this->conn,
-            'SELECT COUNT(*) as count FROM contacts WHERE user_id = ? AND `group` = (SELECT name FROM groups WHERE id = ?)',
-            'ii',
-            $_SESSION['USER_ID'],
-            $group_id
-        );
-        if ($check && $check->fetch_assoc()['count'] > 0) {
-            $check->free_result();
-            throw SMSPortalException::groupHasContacts();
-        }
-        if ($check) {
-            $check->free_result();
-        }
-        */
-
-        return json_encode([
-            'status' => 'Group deleted successfully',
-            'status_code' => 'success'
-        ]);
     }
 
     private function sendError($message)
