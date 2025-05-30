@@ -66,7 +66,7 @@ class SMSPortalException extends \Exception
 
     public static function requiredFields(): self
     {
-        return new self('Name and phone number are required', self::CONTACT_REQUIRED_FIELDS);
+        return new self('Name, phone number and contact group are required', self::CONTACT_REQUIRED_FIELDS);
     }
 
     public static function invalidPhoneFormat(): self
@@ -107,6 +107,11 @@ class SMSPortalException extends \Exception
     public static function invalidParameter($param): self
     {
         return new self("Invalid parameter: {$param}", self::INVALID_PARAMETER);
+    }
+
+    public static function invalidDeleteAction()
+    {
+        return new self('Please select a valid action to perform, to continue');
     }
 
     public static function invalidAction(): self
