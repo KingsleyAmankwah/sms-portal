@@ -101,7 +101,7 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                     <div class="tab-pane fade" id="bulk">
                         <form id="bulk-sms-form" class="mt-4">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token); ?>">
-                            <input type="hidden" name="action" value="send_bulk">
+                            <input type="hidden" name="action" value="validate_bulk">
                             <div class="form-group">
                                 <label for="bulk-group">Select Group</label>
                                 <select class="form-control" name="group" id="bulk-group" required>
@@ -175,6 +175,20 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
         border-top: none;
         border-radius: 0 0 0.25rem 0.25rem;
     }
+
+    .border-left {
+        border-left: 3px solid #dc3545 !important;
+        padding-left: 1rem;
+        margin: 0.5rem 0;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+    }
 </style>
 
 <script>
@@ -222,6 +236,100 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
             $('#bulk-char-count').text(this.value.length);
         });
 
+        function handleBulkSMSResponse(response, form) {
+            let icon, title, message;
+
+            switch (response.status_code) {
+                case 'success':
+                    icon = 'success';
+                    title = 'Success';
+                    message = response.status;
+                    break;
+
+                case 'partial_success':
+                    icon = 'info';
+                    title = 'Partially Successful';
+                    message = `<div class="text-left">
+                <p>${response.status}</p>`;
+
+                    if (response.failed_recipients && response.failed_recipients.length > 0) {
+                        message += `<p class="mt-2">Failed recipients:</p>
+                <div class="text-danger small mt-2 border-left pl-3">
+                    ${response.failed_recipients.join('<br>')}
+                </div>`;
+                    }
+                    message += '</div>';
+                    break;
+
+                default:
+                    icon = 'error';
+                    title = 'Error';
+                    message = response.status || 'Failed to send messages';
+            }
+
+            Swal.fire({
+                title: title,
+                html: message,
+                icon: icon,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#390546',
+                customClass: {
+                    container: 'swal-wide'
+                }
+            });
+
+            if (['success', 'partial_success'].includes(response.status_code)) {
+                form[0].reset();
+                $('#bulk-char-count').text('0');
+                checkSMSBalance();
+            }
+        }
+
+
+        function handleSMSResponse(response, form) {
+            if (form.attr('id') === 'bulk-sms-form') {
+                handleBulkSMSResponse(response, form);
+            } else {
+                // Handle individual SMS response
+                if (response.status_code === 'success') {
+                    form[0].reset();
+                    $('#sms-char-count').text('0');
+                    checkSMSBalance();
+                    Swal.fire({
+                        title: 'Success',
+                        text: response.status,
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.status_code,
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            }
+        }
+
+        function handleAjaxError(xhr) {
+            let errorMessage;
+            try {
+                const response = xhr.responseJSON || JSON.parse(xhr.responseText);
+                errorMessage = response.message || 'Failed to send SMS';
+            } catch (e) {
+                console.error('Error parsing server response:', e);
+                errorMessage = 'Server communication error';
+            }
+
+            Swal.fire({
+                title: 'Error',
+                text: errorMessage,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+
         function checkSMSBalance() {
             $.ajax({
                 url: '../controllers/process_sms.php',
@@ -266,47 +374,16 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                 data: form.serialize(),
                 dataType: 'json',
                 success: function(response) {
-                    btn.attr('disabled', false);
-                    spinner.addClass('d-none');
-                    btnText.text('Send SMS');
-
-                    if (response.status_code === 'success') {
-                        form[0].reset();
-                        $('#sms-char-count').text('0');
-                        checkSMSBalance();
-                        Swal.fire({
-                            title: 'Success',
-                            text: response.status,
-                            icon: 'success',
-                            confirmButtonText: 'OK'
-                        });
-                    } else {
-                        Swal.fire({
-                            title: 'Error',
-                            text: 'Failed to send SMS, Contact Support team.',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
-                        });
-                    }
+                    handleSMSResponse(response, form);
                 },
                 error: function(xhr) {
+                    handleAjaxError(xhr);
+                },
+                complete: function() {
+                    // Reset form state
                     btn.attr('disabled', false);
                     spinner.addClass('d-none');
                     btnText.text('Send SMS');
-
-                    let errorMsg = 'Failed to send SMS';
-                    try {
-                        const response = xhr.responseJSON || JSON.parse(xhr.responseText);
-                        errorMsg = response.message || response.status || errorMsg;
-                    } catch (e) {
-                        errorMsg = 'Server error';
-                    }
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
                 }
             });
         }
@@ -319,7 +396,7 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
 
             btn.attr('disabled', true);
             spinner.removeClass('d-none');
-            btnText.text('Sending...');
+            btnText.text('Confirming...');
 
             $.ajax({
                 url: '../controllers/process_sms.php',
@@ -327,47 +404,79 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                 data: form.serialize(),
                 dataType: 'json',
                 success: function(response) {
-                    btn.attr('disabled', false);
-                    spinner.addClass('d-none');
-                    btnText.text('Send SMS');
-
-                    if (response.status_code === 'success') {
-                        form[0].reset();
-                        $('#bulk-char-count').text('0');
-                        checkSMSBalance();
+                    if (response.status_code === 'validation_failed') {
                         Swal.fire({
-                            title: 'Success',
-                            text: response.status,
-                            icon: 'success',
-                            confirmButtonText: 'OK'
+                            title: 'Validation Failed',
+                            html: `
+                        <div class="text-left">
+                            <p>${response.message}</p>
+                            ${response.invalid_numbers ? `
+                                <p class="mt-2">Failed validation:</p>
+                                <div class="text-danger small mt-2 border-left pl-3">
+                                    ${response.invalid_numbers.join('<br>')}
+                                </div>
+                            ` : ''}
+                            ${response.required_credits ? `
+                                <p class="mt-2">SMS Credits:</p>
+                                <div class="text-danger small mt-2">
+                                    Required: ${response.required_credits}<br>
+                                    Available: ${response.available_credits}
+                                </div>
+                            ` : ''}
+                        </div>`,
+                            icon: 'warning',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#390546'
                         });
-                    } else {
+                    } else if (response.status_code === 'validation_success') {
                         Swal.fire({
-                            title: 'Error',
-                            text: response.message || response.status || 'Failed to send SMS',
-                            icon: 'error',
-                            confirmButtonText: 'OK'
+                            title: 'Confirm Send',
+                            html: `
+                        <p>Ready to send messages to ${response.valid_count} recipients in group "${response.group_name}".</p>
+                        <p class="text-muted small">This will use ${response.valid_count} SMS credits</p>
+                    `,
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Send Messages',
+                            cancelButtonText: 'Cancel',
+                            confirmButtonColor: '#390546',
+                            cancelButtonColor: '#6c757d'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                proceedWithBulkSend(form, btn, spinner, btnText);
+                            }
                         });
                     }
                 },
                 error: function(xhr) {
+                    handleAjaxError(xhr);
+                },
+                complete: function() {
                     btn.attr('disabled', false);
                     spinner.addClass('d-none');
                     btnText.text('Send SMS');
+                }
+            });
+        }
 
-                    let errorMsg = 'Failed to send SMS';
-                    try {
-                        const response = xhr.responseJSON || JSON.parse(xhr.responseText);
-                        errorMsg = response.message || response.status || errorMsg;
-                    } catch (e) {
-                        errorMsg = 'Server error';
-                    }
-                    Swal.fire({
-                        title: 'Error',
-                        text: errorMsg,
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
+        function proceedWithBulkSend(form, btn, spinner, btnText) {
+            btn.attr('disabled', true);
+            spinner.removeClass('d-none');
+            btnText.text('Sending...');
+
+            $.ajax({
+                url: '../controllers/process_sms.php',
+                type: 'POST',
+                data: form.serialize().replace('validate_bulk', 'send_bulk'),
+                dataType: 'json',
+                success: function(response) {
+                    handleBulkSMSResponse(response, form);
+                },
+                error: handleAjaxError,
+                complete: function() {
+                    btn.attr('disabled', false);
+                    spinner.addClass('d-none');
+                    btnText.text('Send SMS');
                 }
             });
         }
