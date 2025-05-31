@@ -163,9 +163,10 @@ class SMSManager
             throw SMSPortalException::requiredFields();
         }
 
-        if (strlen($message) > 160) {
-            throw SMSPortalException::invalidParameter('Message must be 160 characters or less');
-        }
+        //T: Uncomment this when you want to enforce message length
+        // if (strlen($message) > 160) {
+        //     throw SMSPortalException::invalidParameter('Message must be 160 characters or less');
+        // }
 
         $phone = preg_replace('/[^0-9+]/', '', $phone_number);
         if (!preg_match('/^\+?[1-9]\d{1,14}$/', $phone)) {
@@ -176,14 +177,14 @@ class SMSManager
         $balanceData = json_decode($balanceResponse, true);
 
         if (!isset($balanceData['message']) || $balanceData['message'] < 1) {
-            throw SMSPortalException::databaseError('Insufficient SMS balance');
+            throw SMSPortalException::insufficientSMSBalance();
         }
 
         $response = SMSClient::sendSMS([$phone], $message);
         $responseData = json_decode($response, true);
 
         $status = (isset($responseData['status']) && $responseData['status'] === true) ? 'success' : 'failed';
-        $error_message = $status === 'failed' ? ($responseData['message'] ?? 'Unknown error') : null;
+        $error_message = $status === 'failed' ? ($responseData['message'] ?? 'Failed to load error message') : null;
 
         // Log SMS attempt
         $insert_id = MySQLDatabase::sqlInsert(
@@ -197,17 +198,18 @@ class SMSManager
             $error_message
         );
         if ($insert_id === -1) {
-            $this->customLog("Failed to log SMS for $phone");
             throw SMSPortalException::databaseError('Failed to log SMS');
         }
 
         if ($status === 'success') {
             return json_encode([
-                'status' => 'SMS sent successfully',
+                'status' => sprintf(
+                    'Message sent successfully to %s',
+                    preg_replace('/\d(?=\d{4})/', '*', $phone)
+                ),
                 'status_code' => 'success'
             ]);
         } else {
-            $this->customLog("Individual SMS failed: " . $response);
             throw SMSPortalException::databaseError('Failed to send SMS: ' . ($responseData['message'] ?? 'Unknown error'));
         }
     }
