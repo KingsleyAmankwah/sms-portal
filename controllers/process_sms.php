@@ -174,6 +174,7 @@ class SMSManager
 
         $balanceResponse = SMSClient::checkSMSBalance();
         $balanceData = json_decode($balanceResponse, true);
+
         if (!isset($balanceData['message']) || $balanceData['message'] < 1) {
             throw SMSPortalException::databaseError('Insufficient SMS balance');
         }
@@ -233,7 +234,7 @@ class SMSManager
     {
         return json_encode([
             'status' => 'error',
-            'status_code' => 'error'
+            'status_code' => $message
         ]);
     }
 
