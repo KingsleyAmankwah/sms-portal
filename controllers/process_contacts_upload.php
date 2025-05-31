@@ -18,6 +18,60 @@ class ContactUploader
     private $conn;
     private $errors = [];
     private $successCount = 0;
+    /**
+     * Phone validation rules for different countries
+     * @var array
+     * This array contains rules for phone number validation based on country codes.
+     * Each entry includes:
+     * - min_length: Minimum length of the phone number including country code
+     * - max_length: Maximum length of the phone number including country code
+     * - pattern: Regular expression to validate the phone number format
+     * - example: Example phone number format for the country
+     */
+    private $phoneValidationRules = [
+        '233' => [ // Ghana
+            'min_length' => 13, // +233 + 9 digits = 13 total
+            'max_length' => 13,
+            'pattern' => '/^\+233[2-9]\d{8}$/', // Ghana mobile numbers start with 2-9 after country code
+            'example' => '+233553157024'
+        ],
+        '234' => [ // Nigeria
+            'min_length' => 14,
+            'max_length' => 14,
+            'pattern' => '/^\+234[7-9]\d{9}$/', // Nigerian mobile numbers start with 7-9 after country code
+            'example' => '+2348012345678'
+        ],
+        '1' => [ // US/Canada
+            'min_length' => 12,
+            'max_length' => 12,
+            'pattern' => '/^\+1[2-9]\d{9}$/', // US/Canada numbers start with 2-9 after country code
+            'example' => '+12345678901'
+        ],
+        '44' => [ // UK
+            'min_length' => 13,
+            'max_length' => 13,
+            'pattern' => '/^\+44[1-9]\d{9}$/', // UK mobile numbers start with 1-9 after country code
+            'example' => '+441234567890'
+        ],
+        '91' => [ // India
+            'min_length' => 14,
+            'max_length' => 14,
+            'pattern' => '/^\+91[789]\d{9}$/', // Indian mobile numbers start with 7-9 after country code
+            'example' => '+919876543210'
+        ],
+        '61' => [ // Australia
+            'min_length' => 13,
+            'max_length' => 13,
+            'pattern' => '/^\+61[4]\d{8}$/', // Australian mobile numbers start with 4 after country code
+            'example' => '+61412345678'
+        ],
+        '27' => [ // South Africa
+            'min_length' => 13,
+            'max_length' => 13,
+            'pattern' => '/^\+27[6-8]\d{8}$/', // South African mobile numbers start with 6-8 after country code
+            'example' => '+27612345678'
+        ],
+    ];
 
     /**
      * Initialize database connection and session
@@ -203,9 +257,7 @@ class ContactUploader
             throw SMSPortalException::requiredFields();
         }
 
-        if (!preg_match('/^\+?[1-9]\d{1,14}$/', $data['phone_number'])) {
-            throw SMSPortalException::invalidPhoneFormat();
-        }
+        $this->validatePhoneNumber($data['phone_number']);
 
         if (!empty($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             throw SMSPortalException::invalidEmailFormat();
@@ -366,9 +418,11 @@ class ContactUploader
                 throw new SMSPortalException($rowPrefix . "Group field is empty");
             }
 
-            // Validate phone format
-            if (!preg_match('/^\+?[1-9]\d{1,14}$/', $contactData['phone_number'])) {
-                throw new SMSPortalException($rowPrefix . "Invalid phone number format. Use format: +233xxxxxxxxx");
+            // phone validation method with row prefix for errors
+            try {
+                $this->validatePhoneNumber($contactData['phone_number']);
+            } catch (SMSPortalException $e) {
+                throw new SMSPortalException($rowPrefix . $e->getMessage());
             }
 
             // Validate email if provided
@@ -396,6 +450,92 @@ class ContactUploader
             $this->errors[] = $e->getMessage();
         }
     }
+
+    /**
+     * Validate phone number with country-specific rules
+     * @param string $phoneNumber The phone number to validate
+     * @return bool True if valid
+     * @throws SMSPortalException For validation errors
+     */
+    private function validatePhoneNumber($phoneNumber)
+    {
+        // Remove any spaces or special characters except +
+        $cleanPhone = preg_replace('/[^\+\d]/', '', $phoneNumber);
+
+        // Check if phone starts with +
+        if (strpos($cleanPhone, '+') !== 0) {
+            throw new SMSPortalException("Phone number must start with country code (e.g., +233553157024)");
+        }
+
+        // Extract country code
+        $countryCode = $this->extractCountryCode($cleanPhone);
+
+        if (!$countryCode) {
+            throw new SMSPortalException("Invalid or unsupported country code in phone number: {$phoneNumber}");
+        }
+
+        // Get validation rules for this country
+        if (!isset($this->phoneValidationRules[$countryCode])) {
+            throw new SMSPortalException("Unsupported country code: +{$countryCode}. Supported countries: " . $this->getSupportedCountries());
+        }
+
+        $rules = $this->phoneValidationRules[$countryCode];
+
+        // Check length
+        $phoneLength = strlen($cleanPhone);
+        if ($phoneLength < $rules['min_length']) {
+            throw new SMSPortalException("Phone number too short for country code +{$countryCode}. Expected format: {$rules['example']}");
+        }
+
+        if ($phoneLength > $rules['max_length']) {
+            throw new SMSPortalException("Phone number too long for country code +{$countryCode}. Expected format: {$rules['example']}");
+        }
+
+        // Check pattern
+        if (!preg_match($rules['pattern'], $cleanPhone)) {
+            throw new SMSPortalException("Invalid phone number format for country code +{$countryCode}. Expected format: {$rules['example']}");
+        }
+
+        return true;
+    }
+
+    /**
+     * Extract country code from phone number
+     * @param string $phoneNumber Clean phone number with +
+     * @return string|false Country code or false if not found
+     */
+    private function extractCountryCode($phoneNumber)
+    {
+        // Remove the + sign for processing
+        $number = substr($phoneNumber, 1);
+
+        // Check each country code from longest to shortest to avoid conflicts
+        $countryCodes = array_keys($this->phoneValidationRules);
+
+        // Sort by length descending to check longer codes first
+        usort($countryCodes, function ($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+
+        foreach ($countryCodes as $code) {
+            if (strpos($number, $code) === 0) {
+                return $code;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get list of supported countries for error messages
+     * @return string Comma-separated list of supported country codes
+     */
+    private function getSupportedCountries()
+    {
+        $codes = array_keys($this->phoneValidationRules);
+        return '+' . implode(', +', $codes);
+    }
+
 
     /**
      * Send success response
