@@ -68,31 +68,44 @@ class ContactManager
             ? max(1, (int)$_POST['items_per_page'])
             : 10;
         $search = isset($_POST['search']) ? Validator::validateUserInput($_POST['search']) : '';
+        $group = isset($_POST['group']) ? Validator::validateUserInput($_POST['group']) : '';
 
         $offset = ($page - 1) * $itemsPerPage;
 
-        // Build query
+        // Build base queries
         $query = 'SELECT id, name, phone_number, email, `group`, company, notes FROM contacts WHERE user_id = ?';
-        $params = ['i', $_SESSION['USER_ID']];
+        $countQuery = 'SELECT COUNT(*) as total FROM contacts WHERE user_id = ?';
 
+
+        // Initialize parameters
+        $params = ['i', $_SESSION['USER_ID']];
+        $countParams = ['i', $_SESSION['USER_ID']];
+
+
+        // Add search condition if present
         if ($search) {
             $query .= ' AND (name LIKE ? OR phone_number LIKE ?)';
+            $countQuery .= ' AND (name LIKE ? OR phone_number LIKE ?)';
             $params[0] .= 'ss';
+            $countParams[0] .= 'ss';
             $searchParam = "%{$search}%";
             $params[] = $searchParam;
             $params[] = $searchParam;
-        }
-
-        // Count total contacts (for pagination)
-        $countQuery = 'SELECT COUNT(*) as total FROM contacts WHERE user_id = ?';
-        $countParams = ['i', $_SESSION['USER_ID']];
-        if ($search) {
-            $countQuery .= ' AND (name LIKE ? OR phone_number LIKE ?)';
-            $countParams[0] .= 'ss';
             $countParams[] = $searchParam;
             $countParams[] = $searchParam;
         }
 
+        // Add group filter if present
+        if ($group) {
+            $query .= ' AND `group` = ?';
+            $countQuery .= ' AND `group` = ?';
+            $params[0] .= 's';
+            $countParams[0] .= 's';
+            $params[] = $group;
+            $countParams[] = $group;
+        }
+
+        // Get total count for pagination
         $countResult = MySQLDatabase::sqlSelect($this->conn, $countQuery, ...$countParams);
         if ($countResult === false) {
             throw SMSPortalException::databaseError('Failed to count contacts');
@@ -100,12 +113,13 @@ class ContactManager
         $totalContacts = $countResult->fetch_assoc()['total'];
         $countResult->free_result();
 
-        // Fetch paginated contacts
+        // Add pagination
         $query .= ' ORDER BY name ASC LIMIT ? OFFSET ?';
         $params[0] .= 'ii';
         $params[] = $itemsPerPage;
         $params[] = $offset;
 
+        // Fetch contacts
         $result = MySQLDatabase::sqlSelect($this->conn, $query, ...$params);
         if ($result === false) {
             throw SMSPortalException::databaseError('Failed to fetch contacts');
@@ -123,7 +137,11 @@ class ContactManager
             'contacts' => $contacts,
             'total_contacts' => (int)$totalContacts,
             'items_per_page' => $itemsPerPage,
-            'current_page' => $page
+            'current_page' => $page,
+            'applied_filters' => [
+                'search' => $search,
+                'group' => $group
+            ]
         ]);
     }
 
