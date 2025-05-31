@@ -104,8 +104,9 @@ class SMSManager
         // Check balance
         $balanceResponse = SMSClient::checkSMSBalance();
         $balanceData = json_decode($balanceResponse, true);
+
         if (!isset($balanceData['message']) || $balanceData['message'] < count($numbers)) {
-            throw SMSPortalException::databaseError('Insufficient SMS balance');
+            throw SMSPortalException::insufficientSMSBalance();
         }
 
         // Send SMS in batches of 100 (GiantSMS API limit)
