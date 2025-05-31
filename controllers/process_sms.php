@@ -43,6 +43,8 @@ class SMSManager
 
             $action = $_POST['action'] ?? '';
             switch ($action) {
+                case 'validate_bulk':
+                    return $this->validateBulkSMS();
                 case 'send_bulk':
                     return $this->sendBulkSMS();
                 case 'send_individual':
@@ -53,7 +55,6 @@ class SMSManager
                     throw SMSPortalException::invalidAction();
             }
         } catch (Exception $e) {
-            $this->customLog("Process error: " . $e->getMessage());
             return $this->sendError($e->getMessage());
         } finally {
             if ($this->conn) {
@@ -62,95 +63,178 @@ class SMSManager
         }
     }
 
-    private function sendBulkSMS()
+    private function validateBulkSMS()
     {
         $group = Validator::validateUserInput($_POST['group'] ?? '');
         $message = Validator::validateUserInput($_POST['message'] ?? '');
 
         if (empty($group) || empty($message)) {
-            throw SMSPortalException::requiredFields();
+            return json_encode([
+                'status_code' => 'validation_failed',
+                'message' => 'Group and message are required'
+            ]);
         }
 
-        if (strlen($message) > 160) {
-            throw SMSPortalException::invalidParameter('Message must be 160 characters or less');
-        }
+        // Fetch and validate numbers
+        $query = 'SELECT phone_number, name FROM contacts WHERE user_id = ? AND `group` = ?';
+        $result = MySQLDatabase::sqlSelect($this->conn, $query, 'is', $_SESSION['USER_ID'], $group);
 
-        // Fetch contacts in the group
-        $query = $group === 'All'
-            ? 'SELECT phone_number FROM contacts WHERE user_id = ?'
-            : 'SELECT phone_number FROM contacts WHERE user_id = ? AND `group` = ?';
-        $params = $group === 'All'
-            ? ['i', $_SESSION['USER_ID']]
-            : ['is', $_SESSION['USER_ID'], $group];
-
-        $result = MySQLDatabase::sqlSelect($this->conn, $query, $params[0], ...array_slice($params, 1));
         if ($result === false) {
             throw SMSPortalException::databaseError('Failed to fetch contacts');
         }
 
-        $numbers = [];
+        $validNumbers = [];
+        $invalidNumbers = [];
+
         while ($row = $result->fetch_assoc()) {
             $phone = preg_replace('/[^0-9+]/', '', $row['phone_number']);
-            if (preg_match('/^\+?[1-9]\d{1,14}$/', $phone)) {
-                $numbers[] = $phone;
+            if (preg_match('/^\+?[1-9]\d{9,14}$/', $phone)) {
+                $validNumbers[] = [
+                    'phone' => $phone,
+                    'name' => $row['name']
+                ];
+            } else {
+                $invalidNumbers[] = sprintf(
+                    '%s (%s) - Invalid format',
+                    $row['name'],
+                    $row['phone_number']
+                );
             }
         }
         $result->free_result();
 
-        if (empty($numbers)) {
-            throw SMSPortalException::invalidParameter('No valid phone numbers found in group');
+        // Check for valid numbers
+        if (empty($validNumbers)) {
+            return json_encode([
+                'status_code' => 'validation_failed',
+                'message' => 'No valid phone numbers found',
+                'invalid_numbers' => $invalidNumbers
+            ]);
         }
 
-        // Check balance
+        // Check SMS balance
         $balanceResponse = SMSClient::checkSMSBalance();
         $balanceData = json_decode($balanceResponse, true);
 
-        if (!isset($balanceData['message']) || $balanceData['message'] < count($numbers)) {
-            throw SMSPortalException::insufficientSMSBalance();
+        if (!isset($balanceData['message']) || $balanceData['message'] < count($validNumbers)) {
+            return json_encode([
+                'status_code' => 'validation_failed',
+                'message' => 'Insufficient SMS balance',
+                'required_credits' => count($validNumbers),
+                'available_credits' => $balanceData['message'] ?? 0
+            ]);
         }
 
-        // Send SMS in batches of 100 (GiantSMS API limit)
+        // Store validated data in session
+        $_SESSION['validated_bulk_sms'] = [
+            'numbers' => $validNumbers,
+            'message' => $message,
+            'group' => $group,
+            'timestamp' => time()
+        ];
+
+        return json_encode([
+            'status_code' => 'validation_success',
+            'message' => 'Validation successful',
+            'valid_count' => count($validNumbers),
+            'group_name' => $group
+        ]);
+    }
+
+
+    private function sendBulkSMS()
+    {
+        $validatedData = $_SESSION['validated_bulk_sms'] ?? null;
+
+        if (!$validatedData || (time() - $validatedData['timestamp']) > 300) {
+            throw SMSPortalException::invalidParameter('Please validate numbers first');
+        }
+
+        $numbers = $validatedData['numbers'];
+        $message = $validatedData['message'];
+        $group = $validatedData['group'];
+
+        unset($_SESSION['validated_bulk_sms']);
+
         $batchSize = 100;
         $successCount = 0;
+        $failedNumbers = [];
         $batches = array_chunk($numbers, $batchSize);
 
         foreach ($batches as $batch) {
-            $response = SMSClient::sendSMS($batch, $message);
-            $responseData = json_decode($response, true);
+            try {
+                $phoneBatch = array_column($batch, 'phone');
+                $response = SMSClient::sendSMS($phoneBatch, $message);
+                $responseData = json_decode($response, true);
 
-            $status = (isset($responseData['status']) && $responseData['status'] === true) ? 'success' : 'failed';
-            $error_message = $status === 'failed' ? ($responseData['message'] ?? 'Unknown error') : null;
+                $status = (isset($responseData['status']) && $responseData['status'] === true) ? 'success' : 'failed';
+                $error_message = $status === 'failed' ? ($responseData['message'] ?? 'Failed to send message') : null;
 
-            // Log each number in the batch
-            foreach ($batch as $phone) {
-                $insert_id = MySQLDatabase::sqlInsert(
-                    $this->conn,
-                    'INSERT INTO sms_logs (user_id, phone_number, message, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)',
-                    'issss',
-                    $_SESSION['USER_ID'],
-                    $phone,
-                    $message,
-                    $status,
-                    $error_message
-                );
-                if ($insert_id === -1) {
-                    $this->customLog("Failed to log SMS for $phone");
-                    throw SMSPortalException::databaseError('Failed to log SMS');
+                foreach ($batch as $contact) {
+                    // Log attempt
+                    $insert_id = MySQLDatabase::sqlInsert(
+                        $this->conn,
+                        'INSERT INTO sms_logs (user_id, phone_number, message, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)',
+                        'issss',
+                        $_SESSION['USER_ID'],
+                        $contact['phone'],
+                        $message,
+                        $status,
+                        $error_message
+                    );
+
+                    if ($insert_id === -1) {
+                        throw SMSPortalException::databaseError('Failed to log SMS');
+                    }
+
+                    // Track success/failure
+                    if ($status === 'success') {
+                        $successCount++;
+                    } else {
+                        $failedNumbers[] = $contact;
+                    }
                 }
-            }
-
-            if ($status === 'success') {
-                $successCount += count($batch);
-            } else {
-                $this->customLog("SMS batch failed: " . $response);
-                throw SMSPortalException::databaseError('Failed to send SMS: ' . ($responseData['message'] ?? 'Unknown error'));
+            } catch (Exception $e) {
+                // Handle batch failure
+                foreach ($batch as $contact) {
+                    $failedNumbers[] = $contact;
+                    // Log failure
+                    MySQLDatabase::sqlInsert(
+                        $this->conn,
+                        'INSERT INTO sms_logs (user_id, phone_number, message, sent_at, status, error_message) VALUES (?, ?, ?, NOW(), ?, ?)',
+                        'issss',
+                        $_SESSION['USER_ID'],
+                        $contact['phone'],
+                        $message,
+                        'failed',
+                        $e->getMessage()
+                    );
+                }
             }
         }
 
         return json_encode([
-            'status' => "SMS sent to $successCount contacts",
-            'status_code' => 'success',
-            'sent_count' => $successCount
+            'status_code' => $failedNumbers ? 'partial_success' : 'success',
+            'status' => sprintf(
+                $failedNumbers ?
+                    'Sent %d out of %d messages to group "%s". %d message(s) failed.' :
+                    'Successfully sent %d message%s to group "%s"',
+                $successCount,
+                $failedNumbers ? count($numbers) : ($successCount === 1 ? '' : 's'),
+                htmlspecialchars($group),
+                $failedNumbers ? count($failedNumbers) : null
+            ),
+            'total_recipients' => count($numbers),
+            'successful_sends' => $successCount,
+            'failed_sends' => count($failedNumbers),
+            'failed_recipients' => $failedNumbers ? array_map(function ($contact) {
+                return sprintf(
+                    '%s (%s)',
+                    htmlspecialchars($contact['name']),
+                    preg_replace('/\d(?=\d{4})/', '*', $contact['phone'])
+                );
+            }, $failedNumbers) : [],
+            'group_name' => htmlspecialchars($group)
         ]);
     }
 
@@ -227,7 +311,6 @@ class SMSManager
                 'balance' => $responseData['message']
             ]);
         } else {
-            $this->customLog("Balance check failed: " . $response);
             throw SMSPortalException::databaseError('Failed to check balance: ' . ($responseData['message'] ?? 'Unknown error'));
         }
     }
@@ -239,22 +322,12 @@ class SMSManager
             'status_code' => $message
         ]);
     }
-
-    private function customLog($message)
-    {
-        file_put_contents(
-            'C:\\xampp\\htdocs\\dashboard-master\\debug.log',
-            date('Y-m-d H:i:s') . " - $message\n",
-            FILE_APPEND
-        );
-    }
 }
 
 try {
     $manager = new SMSManager();
     echo $manager->process();
 } catch (Exception $e) {
-    \SMSPortalExtensions\customLog("SMSManager error: " . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'status' => 'Server error: ' . $e->getMessage(),
