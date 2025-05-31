@@ -29,7 +29,7 @@ $individual_data = [
     'name' => $_POST['name'] ?? '',
     'phone_number' => $_POST['phone_number'] ?? '',
     'email' => $_POST['email'] ?? '',
-    'group' => $_POST['group'] ?? 'All',
+    'group' => $_POST['group'] ?? '',
     'company' => $_POST['company'] ?? '',
     'notes' => $_POST['notes'] ?? ''
 ];
@@ -100,10 +100,10 @@ $individual_data = [
                         <input type="hidden" name="upload_type" value="bulk">
                         <div class="form-group">
                             <label for="group_bulk">Contacts Group</label>
-                            <select class="form-control" name="group" id="group_bulk">
+                            <select class="form-control" name="group" id="group_bulk" required>
                                 <option value="">Select contact group</option>
                                 <?php foreach ($groups as $g): ?>
-                                    <option value="<?php echo htmlspecialchars($g); ?>" <?php echo $g === 'All' ? 'selected' : ''; ?>>
+                                    <option value="<?php echo htmlspecialchars($g); ?>">
                                         <?php echo htmlspecialchars($g); ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -124,7 +124,7 @@ $individual_data = [
                             <li>File must be in CSV or Excel (.xlsx, .xls) format</li>
                             <li>Must contain at least two columns: Name and Phone Number</li>
                             <li>Phone numbers should include country code (e.g., +233)</li>
-                            <li>Optional columns: Email, Group, Company, Notes</li>
+                            <li>Optional columns: Email, Company, Notes</li>
                         </ul>
                         <p><a href="../assets/files/sample_contacts.xlsx" style="text-decoration: underline;" download>Download Sample Excel File</a></p>
                         <button type="submit" class="btn btn-primary w-100" id="import-btn">
@@ -181,7 +181,7 @@ $individual_data = [
 </style>
 
 <?php
-include '../components/footer.php';
+include_once '../components/footer.php';
 ?>
 
 <script>
@@ -249,12 +249,12 @@ include '../components/footer.php';
                     if (isIndividual) {
                         // Reset individual form
                         $(form).find('input[name="name"], input[name="phone_number"], input[name="email"], input[name="company"], textarea[name="notes"]').val('');
-                        $(form).find('select[name="group"]').val('All');
+                        $(form).find('select[name="group"]').val('');
                     } else {
                         // Reset bulk form
                         $(form).find('input[type="file"]').val('');
                         $('#file-name').text(''); // Clear the displayed filename
-                        $(form).find('select[name="group"]').val('All');
+                        $(form).find('select[name="group"]').val('');
                     }
                 }
             },
