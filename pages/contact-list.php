@@ -35,8 +35,20 @@ if ($conn) {
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-3">
-                        <div class="form-group w-50">
-                            <input type="text" class="form-control" id="search-input" placeholder="Search by name or phone number">
+                        <div class="d-flex gap-2 w-50">
+                            <div class="form-group w-50">
+                                <input type="text" class="form-control" id="search-input" placeholder="Search by name or phone number">
+                            </div>
+                            <div class="form-group">
+                                <select class="form-control" id="group-filter">
+                                    <option value="">All Groups</option>
+                                    <?php foreach ($groups as $g): ?>
+                                        <option value="<?php echo htmlspecialchars($g); ?>">
+                                            <?php echo htmlspecialchars($g); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="items-per-page" class="mr-2">Items per page:</label>
@@ -156,6 +168,25 @@ if ($conn) {
         background-color: #a32b5a !important;
     }
 
+    .gap-2 {
+        gap: 0.5rem;
+    }
+
+    #group-filter {
+        min-width: 150px;
+    }
+
+
+
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+    }
 
     .table th,
     .table td {
@@ -264,6 +295,7 @@ if ($conn) {
         let currentPage = 1;
         let itemsPerPage = 10;
         let searchQuery = '';
+        let selectedGroup = '';
         const loadingIndicator = document.getElementById('loading-indicator');
         const contactsTable = document.querySelector('.table');
 
@@ -315,6 +347,13 @@ if ($conn) {
             loadContacts();
         });
 
+        // Add group filter handler
+        $('#group-filter').on('change', function() {
+            selectedGroup = $(this).val();
+            currentPage = 1;
+            loadContacts();
+        });
+
         function loadContacts() {
             showLoading();
             $.ajax({
@@ -325,6 +364,7 @@ if ($conn) {
                     page: currentPage,
                     items_per_page: itemsPerPage,
                     search: searchQuery,
+                    group: selectedGroup,
                     csrf_token: '<?php echo htmlspecialchars($csrf_token); ?>'
                 },
                 dataType: 'json',
