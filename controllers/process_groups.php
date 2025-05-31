@@ -154,10 +154,6 @@ class GroupManager
         $current_name = $group->fetch_assoc()['name'];
         $group->free_result();
 
-        if (strtolower($current_name) === 'all contacts') {
-            throw SMSPortalException::protectedGroup();
-        }
-
         // Check for duplicate group name (excluding current group)
         $check = MySQLDatabase::sqlSelect(
             $this->conn,
