@@ -73,6 +73,10 @@ class SMSPortalException extends \Exception
     {
         return new self('Invalid phone number format (e.g., +233123456789)', self::INVALID_PHONE_FORMAT);
     }
+    public static function insufficientSMSBalance()
+    {
+        return new self('Insufficient SMS balance to send messages');
+    }
 
     public static function invalidEmailFormat(): self
     {
@@ -132,15 +136,5 @@ class SMSPortalException extends \Exception
     public static function groupNotFound()
     {
         return new self('Group not found');
-    }
-
-    public static function groupHasContacts()
-    {
-        return new self('Cannot delete group because it contains contacts');
-    }
-
-    public static function protectedGroup()
-    {
-        return new self('Cannot delete the default "All" group');
     }
 }
