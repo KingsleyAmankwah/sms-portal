@@ -23,6 +23,9 @@ class SMSPortalException extends \Exception
     const INVALID_PARAMETER = 6001;
     const INVALID_ACTION = 6002;
     const INVALID_SESSION = 7001;
+    const FORBIDDEN = 403;
+    const UNAUTHORIZED = 401;
+    const API_ERROR = 8001;
 
     public static function invalidRequest(): self
     {
@@ -136,5 +139,20 @@ class SMSPortalException extends \Exception
     public static function groupNotFound()
     {
         return new self('Group not found');
+    }
+
+    public static function forbidden(): self
+    {
+        return new self('Access denied');
+    }
+
+    public static function unauthorizedAccess(): self
+    {
+        return new self('Unauthorized access');
+    }
+
+    public static function apiError($message = 'API request failed'): self
+    {
+        return new self($message, self::API_ERROR);
     }
 }

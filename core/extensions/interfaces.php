@@ -37,4 +37,6 @@ interface ISMSClient
 {
     public static function sendSMS($numbersArray, $message);
     public static function checkSMSBalance();
+    public static function getSenderIDs();
+    public static function registerSenderID($businessName, $businessDescription);
 }

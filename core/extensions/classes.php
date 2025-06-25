@@ -10,12 +10,13 @@ namespace SMSPortalExtensions;
 
 use DateTime;
 use mysqli;
+use SMSPortalExceptions\SMSPortalException;
 
 require_once __DIR__ . '/../app-config.php';
 require_once 'interfaces.php';
 
 const DB_ERROR_PREPARE_FAILED = "Prepare failed: ";
-const CUSTOM_LOG = 'C:\xampp\htdocs\dashboard-master\debug.log';
+const CUSTOM_LOG = 'C:\xampp\htdocs\sms-portal\debug.log';
 
 /**
  * Logs custom messages to a predefined log file
@@ -270,6 +271,62 @@ class Authentication implements IAuthentication
 
 class Validator implements IValidator
 {
+
+    /**
+     * Phone validation rules for different countries
+     * @var array
+     * This array contains rules for phone number validation based on country codes.
+     * Each entry includes:
+     * - min_length: Minimum length of the phone number including country code
+     * - max_length: Maximum length of the phone number including country code
+     * - pattern: Regular expression to validate the phone number format
+     * - example: Example phone number format for the country
+     */
+    private static $phoneValidationRules = [
+        '233' => [ // Ghana
+            'min_length' => 13,
+            'max_length' => 13,
+            'pattern' => '/^\+233[2-9]\d{8}$/',
+            'example' => '+233553157024'
+        ],
+        '234' => [ // Nigeria
+            'min_length' => 14,
+            'max_length' => 14,
+            'pattern' => '/^\+234[7-9]\d{9}$/',
+            'example' => '+2348012345678'
+        ],
+        '1' => [ // US/Canada
+            'min_length' => 12,
+            'max_length' => 12,
+            'pattern' => '/^\+1[2-9]\d{9}$/',
+            'example' => '+12345678901'
+        ],
+        '44' => [ // UK
+            'min_length' => 13,
+            'max_length' => 13,
+            'pattern' => '/^\+44[1-9]\d{9}$/',
+            'example' => '+441234567890'
+        ],
+        '91' => [ // India
+            'min_length' => 14,
+            'max_length' => 14,
+            'pattern' => '/^\+91[789]\d{9}$/',
+            'example' => '+919876543210'
+        ],
+        '61' => [ // Australia
+            'min_length' => 13,
+            'max_length' => 13,
+            'pattern' => '/^\+61[4]\d{8}$/',
+            'example' => '+61412345678'
+        ],
+        '27' => [ // South Africa
+            'min_length' => 13,
+            'max_length' => 13,
+            'pattern' => '/^\+27[6-8]\d{8}$/',
+            'example' => '+27612345678'
+        ],
+    ];
+
     /**
      * Sanitizes and validates user input
      * @param string $data Input data to validate
@@ -342,6 +399,124 @@ class Validator implements IValidator
         if ($res) {
             $res->free_result();
         }
+    }
+
+    /**
+     * Validates an email address
+     * @param string $email Email address to validate
+     * @return string Validated and sanitized email
+     * @throws SMSPortalException If email is invalid or empty
+     */
+    public static function validateEmail($email)
+    {
+        $email = trim($email);
+        if (empty($email)) {
+            \SMSPortalExtensions\customLog("validateEmail: Email is empty");
+            throw SMSPortalException::requiredFields('Email is required');
+        }
+
+        $email = filter_var($email, FILTER_SANITIZE_EMAIL);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw SMSPortalException::invalidParameter('Invalid email format');
+        }
+
+        $conn = MySQLDatabase::createConnection();
+        if (!$conn) {
+            throw SMSPortalException::databaseError('Database connection failed');
+        }
+
+        $email = mysqli_real_escape_string($conn, $email);
+        $conn->close();
+        return $email;
+    }
+
+        /**
+     * Validates a phone number based on country-specific rules
+     * @param string $phoneNumber Phone number to validate
+     * @return string Validated phone number
+     * @throws SMSPortalException If phone number is invalid or unsupported
+     */
+    public static function validatePhone($phoneNumber)
+    {
+        $phoneNumber = trim($phoneNumber);
+        if (empty($phoneNumber)) {
+            throw SMSPortalException::requiredFields('Phone number is required');
+        }
+
+        // Remove any spaces or special characters except +
+        $cleanPhone = preg_replace('/[^\+\d]/', '', $phoneNumber);
+
+        // Check if phone starts with +
+        if (strpos($cleanPhone, '+') !== 0) {
+            throw SMSPortalException::invalidParameter('Phone number must start with country code (e.g., +233553157024)');
+        }
+
+        // Extract country code
+        $countryCode = self::extractCountryCode($cleanPhone);
+
+        if (!$countryCode) {
+            throw SMSPortalException::invalidParameter('Invalid or unsupported country code in phone number');
+        }
+
+        // Get validation rules for this country
+        if (!isset(self::$phoneValidationRules[$countryCode])) {
+            throw SMSPortalException::invalidParameter("Unsupported country code: +{$countryCode}. Supported countries: " . self::getSupportedCountries());
+        }
+
+        $rules = self::$phoneValidationRules[$countryCode];
+
+        // Check length
+        $phoneLength = strlen($cleanPhone);
+        if ($phoneLength < $rules['min_length']) {
+            throw SMSPortalException::invalidParameter("Phone number too short for country code +{$countryCode}. Expected format: {$rules['example']}");
+        }
+
+        if ($phoneLength > $rules['max_length']) {
+            throw SMSPortalException::invalidParameter("Phone number too long for country code +{$countryCode}. Expected format: {$rules['example']}");
+        }
+
+        // Check pattern
+        if (!preg_match($rules['pattern'], $cleanPhone)) {
+            throw SMSPortalException::invalidParameter("Invalid phone number format for country code +{$countryCode}. Expected format: {$rules['example']}");
+        }
+
+        return $cleanPhone;
+    }
+
+    /**
+     * Extract country code from phone number
+     * @param string $phoneNumber Clean phone number with +
+     * @return string|false Country code or false if not found
+     */
+    private static function extractCountryCode($phoneNumber)
+    {
+        // Remove the + sign for processing
+        $number = substr($phoneNumber, 1);
+
+        // Check each country code from longest to shortest to avoid conflicts
+        $countryCodes = array_keys(self::$phoneValidationRules);
+
+        // Sort by length descending to check longer codes first
+        usort($countryCodes, function ($a, $b) {
+            return strlen($b) - strlen($a);
+        });
+
+        foreach ($countryCodes as $code) {
+            if (strpos($number, $code) === 0) {
+                return $code;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get supported countries as a string
+     * @return string List of supported country codes
+     */
+    private static function getSupportedCountries()
+    {
+        return implode(', ', array_keys(self::$phoneValidationRules));
     }
 }
 
@@ -438,11 +613,9 @@ class SMSClient implements ISMSClient
     public static function checkSMSBalance()
     {
         $curl = curl_init();
-        $username = SMS_API_USERNAME;
-        $password = SMS_API_PASSWORD;
 
         curl_setopt_array($curl, [
-            CURLOPT_URL => "https://api.giantsms.com/api/v1/balance?username=$username&password=$password",
+            CURLOPT_URL => "https://api.giantsms.com/api/v1/balance?username=" . SMS_API_USERNAME . "&password=" . SMS_API_PASSWORD,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
@@ -451,6 +624,88 @@ class SMSClient implements ISMSClient
             CURLOPT_CUSTOMREQUEST => "GET",
             CURLOPT_HTTPHEADER => [
                 "Accept: */*",
+                "Content-Type: application/json"
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return $err;
+        }
+        return trim($response, " \t\n\r\0\x0BNULL");
+    }
+    /**
+     * Get Registered Sender IDs
+     * This function retrieves the list of registered sender IDs from the SMS API.
+     * @return string API response or error message
+     */
+    public static function getSenderIDs()
+    {
+        $curl = curl_init();
+
+        curl_setopt_array($curl, [
+            CURLOPT_URL => "https://api.giantsms.com/api/v1/sender?username=" . SMS_API_USERNAME . "&password=" . SMS_API_PASSWORD,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => [
+                "Accept: */*",
+                "Content-Type: application/json"
+            ],
+        ]);
+
+        $response = curl_exec($curl);
+        $err = curl_error($curl);
+
+        curl_close($curl);
+
+        if ($err) {
+            return $err;
+        }
+        return trim($response, " \t\n\r\0\x0BNULL");
+    }
+
+    /**
+     * Registers a new sender ID
+     * This function registers a new sender ID with the SMS API.
+     * @param string $businessName Name of the business
+     * @param string $businessDescription Description of the business
+     * @return string API response or error message
+     */
+    public static function registerSenderID($businessName, $businessDescription)
+    {
+        $curl = curl_init();
+
+        if (strlen($businessDescription) < 20) {
+            throw SMSPortalException::invalidParameter('Business purpose must be at least 20 characters');
+        }
+
+        $data = [
+            'name' => $businessName,
+            'purpose' => $businessDescription
+        ];
+
+        $jsonData = json_encode($data);
+
+        curl_setopt_array($curl, [
+            CURLOPT_URL => "https://api.giantsms.com/api/v1/sender/register?username=" . SMS_API_USERNAME . "&password=" . SMS_API_PASSWORD,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $jsonData,
+            CURLOPT_HTTPHEADER => [
+                "Accept: */*",
+                "Authorization: Basic " . SMS_API_TOKEN,
                 "Content-Type: application/json"
             ],
         ]);
