@@ -24,10 +24,40 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
       </li>
 
+        <?php if ($_SESSION['USER_ROLE'] === 'admin'): ?>
+        <li class="<?= ($currentPage == 'manage-users.php') ? 'active' : '' ?>">
+          <a href="./manage-users.php">
+            <i class="nc-icon nc-badge"></i>
+            <p>Manage Users</p>
+          </a>
+        </li>
+
+        <li class="<?= ($currentPage == 'manage-sender-ids.php') ? 'active' : '' ?>">
+          <a href="./manage-sender-ids.php">
+            <i class="nc-icon nc-email-85"></i>
+            <p>Manage Sender IDs</p>
+          </a>
+        </li>
+
+        <li class="<?= ($currentPage == 'security-monitoring.php') ? 'active' : '' ?>">
+          <a href="./security-monitoring.php">
+            <i class="nc-icon nc-lock-circle-open"></i>
+            <p>Security Monitoring</p>
+        </a>
+  </li>
+      <?php endif; ?>
+
       <li class="<?= ($currentPage == 'contact-list.php') ? 'active' : '' ?>">
         <a href="./contact-list.php">
           <i class="nc-icon nc-single-02"></i>
           <p>Contact List</p>
+        </a>
+      </li>
+      
+      <li class="<?= ($currentPage == 'upload-contacts.php') ? 'active' : '' ?>">
+        <a href="./upload-contacts.php">
+          <i class="nc-icon nc-cloud-upload-94"></i>
+          <p>Upload Contacts</p>
         </a>
       </li>
 
@@ -38,12 +68,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
       </li>
 
-      <li class="<?= ($currentPage == 'upload-contacts.php') ? 'active' : '' ?>">
-        <a href="./upload-contacts.php">
-          <i class="nc-icon nc-cloud-upload-94"></i>
-          <p>Upload Contacts</p>
-        </a>
-      </li>
       <li class="<?= ($currentPage == 'send-sms.php') ? 'active' : '' ?>">
         <a href="./send-sms.php">
           <i class="nc-icon nc-send"></i>
@@ -64,12 +88,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
           <p>Account Settings</p>
         </a>
       </li>
+
+      <?php if ($_SESSION['USER_ROLE'] === 'client'): ?>
       <li class="<?= ($currentPage == 'contact-support.php') ? 'active' : '' ?>">
         <a href="./contact-support.php">
           <i class="nc-icon nc-headphones"></i>
           <p>Contact Support</p>
         </a>
       </li>
+         <?php endif; ?>
 
       <li class="active-pro">
         <a href="#" onclick="confirmLogout()">
