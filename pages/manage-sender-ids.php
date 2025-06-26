@@ -196,7 +196,7 @@ $csrfToken = ($_SERVER['REQUEST_METHOD'] === 'GET') ? Authentication::createToke
                                 tbody.append(`
                                 <tr>
                                     <td>${index + 1}</td>
-                                    <td>${sender.username || 'Unassigned'} (${sender.email || ''})</td>
+                                    <td>${sender.username || 'TekSed Inc.'} (${sender.email || 'admin@teksed.com'})</td>
                                     <td>${sender.business_name || ''}</td>
                                     <td>
                                         ${sender.business_purpose
