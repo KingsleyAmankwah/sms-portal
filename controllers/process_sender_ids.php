@@ -69,7 +69,6 @@ class SenderIdManager
             $response = SMSClient::getSenderIDs();
             $data = json_decode($response, true);
 
-            // Check if API response is valid
             if (!isset($data['status']) || $data['status'] !== true || !isset($data['data'])) {
                 $this->customLog("Invalid or empty API response: " . json_encode($data));
                 return json_encode([
@@ -82,28 +81,35 @@ class SenderIdManager
             $senderIds = $data['data'] ?? [];
             $processedSenderIds = [];
 
-            // Log fetched sender IDs
-            $ids = array_map(fn($item) => $item['name'] ?? 'UNKNOWN', $senderIds);
-            $this->customLog("Fetched " . count($ids) . " sender IDs from API: " . implode(', ', $ids));
+            // Fetch all users for business_name lookup
+            $users = [];
+            $result = MySQLDatabase::sqlSelect(
+                $this->conn,
+                'SELECT business_name, username, email FROM users WHERE status != "deleted"'
+            );
+            if ($result) {
+                while ($row = $result->fetch_assoc()) {
+                    $users[$row['business_name']] = [
+                        'username' => $row['username'],
+                        'email' => $row['email']
+                    ];
+                }
+                $result->free_result();
+            }
 
             // Process API sender IDs (approved)
             foreach ($senderIds as $sender) {
                 $senderId = $sender['name'] ?? '';
-                // Skip entries with empty name
-                if (empty($senderId)) {
-                    $this->customLog("Skipping empty sender ID (name) in API response");
-                    continue;
-                }
+                $userInfo = $users[$senderId] ?? ['username' => '', 'email' => ''];
+
+
                 $processedSenderIds[] = [
-                    'id' => '', // No ID provided by API
                     'sender_id' => $senderId,
-                    'business_name' => $senderId, // Use name as business_name
+                    'business_name' => $senderId,
                     'business_purpose' => $sender['purpose'] ?? '',
-                    'status' => $sender['approval_status'] ?? 'approved', // Use approval_status, default to approved
-                    'created_at' => 'N/A', // No created_at provided by API
-                    'user_id' => null,
-                    'username' => 'Unassigned',
-                    'email' => ''
+                    'status' => $sender['approval_status'] ?? 'approved',
+                    'username' => $userInfo['username'],
+                    'email' => $userInfo['email']
                 ];
             }
 
@@ -113,7 +119,6 @@ class SenderIdManager
                 'sender_ids' => $processedSenderIds
             ]);
         } catch (Exception $e) {
-            $this->customLog("Error fetching sender IDs: " . $e->getMessage());
             throw SMSPortalException::apiError("Failed to fetch sender IDs: " . $e->getMessage());
         }
     }
@@ -139,9 +144,6 @@ class SenderIdManager
             throw SMSPortalException::invalidParameter('Business purpose must be at least 20 characters');
         }
 
-        if (strlen($businessName) > 5) {
-            throw SMSPortalException::invalidParameter('Business name must be 11 characters or less');
-        }
 
         $this->conn->begin_transaction();
         try {
@@ -231,12 +233,12 @@ class SenderIdManager
 
         // Placeholder password; replace with secure token-based reset in production
         $tempPassword = '********';
-        $message = "Hello $username, your sender ID has been approved! Log in with Email: $email, Password: $tempPassword at https://yourdomain.com/change-password to change your password.";
+        $message = "Hello $username, your sender ID has been approved! Log in with Email: $email, Password: $hashedPassword at https://teksed.com/change-password to change your password.";
 
-        if (strlen($message) > 160) {
-            $this->customLog("Login SMS message too long: " . strlen($message) . " characters");
-            throw SMSPortalException::invalidParameter('Login message exceeds 160 characters');
-        }
+        // if (strlen($message) > 160) {
+        //     $this->customLog("Login SMS message too long: " . strlen($message) . " characters");
+        //     throw SMSPortalException::invalidParameter('Login message exceeds 160 characters');
+        // }
 
         $response = SMSClient::sendSMS([$phone], $message);
         $responseData = json_decode($response, true);
