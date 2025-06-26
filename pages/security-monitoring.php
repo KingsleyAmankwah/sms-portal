@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Login Logs';
+$pageTitle = 'Security Logs';
 require_once '../core/admin-check.php';
 include_once '../components/header.php';
 verifyAdminAccess();
@@ -22,7 +22,6 @@ $csrf_token = Authentication::createToken();
 $conn = MySQLDatabase::createConnection();
 $logs = [];
 $totalLogs = 0;
-
 if ($conn) {
     try {
         // Build query conditions
@@ -38,7 +37,7 @@ if ($conn) {
         }
 
         if (!empty($status)) {
-            $conditions[] = 'status = ?';
+            $conditions[] = 'll.status = ?';
             $params[0] .= 's';
             $params[] = $status;
         }
@@ -58,7 +57,7 @@ if ($conn) {
         $whereClause = $conditions ? implode(' AND ', $conditions) : '1';
 
         // Count total records
-        $countQuery = "SELECT COUNT(*) as total FROM login_logs WHERE $whereClause";
+        $countQuery = "SELECT COUNT(*) as total FROM login_logs ll WHERE $whereClause";
         $result = MySQLDatabase::sqlSelect($conn, $countQuery, $params[0], ...array_slice($params, 1));
         if ($result) {
             $totalLogs = $result->fetch_assoc()['total'];
@@ -110,7 +109,7 @@ if ($conn) {
         <div class="col-md-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Login Logs</h4>
+                    <h4 class="card-title">Security Logs</h4>
                 </div>
                 <div class="card-body">
                     <!-- Filters -->
