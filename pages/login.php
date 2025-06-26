@@ -120,7 +120,6 @@ function validateEmailLogin($conn, $email, $password)
 
             // Verify password
             if (password_verify($password, $user['password'])) {
-                // Successful login - reset attempts and update last login
                 MySQLDatabase::sqlUpdate(
                     $conn,
                     'UPDATE users
@@ -139,7 +138,7 @@ function validateEmailLogin($conn, $email, $password)
                 $_SESSION['EMAIL'] = $user['email'];
 
                 // Log successful attempt
-                // logLoginAttempt($conn, $user['id'], $email, 'success', $_SERVER['REMOTE_ADDR'] ?? '');
+                logLoginAttempt($conn, $user['id'], $email, 'success', $_SERVER['REMOTE_ADDR'] ?? '');
 
                 // Redirect to dashboard
                 header('Location: ' . DASHBOARD_PAGE);
