@@ -345,13 +345,13 @@ $preselected_group = isset($_GET['group']) ? htmlspecialchars($_GET['group']) : 
                         $('#sms-balance-individual').text(balanceText);
                         $('#sms-balance-bulk').text(balanceText);
                     } else {
-                        const errorText = 'Failed to load balance';
+                        const errorText = 'Failed to load balance, please check internet connection';
                         $('#sms-balance-individual').text(errorText);
                         $('#sms-balance-bulk').text(errorText);
                     }
                 },
                 error: function() {
-                    const errorText = 'Failed to load balance';
+                    const errorText = 'Failed to load balance, please check internet connection';
                     $('#sms-balance-individual').text(errorText);
                     $('#sms-balance-bulk').text(errorText);
                 }
