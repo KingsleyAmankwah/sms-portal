@@ -241,7 +241,8 @@ class ContactUploader
      */
     private function validateHeaders($headers)
     {
-        if (!in_array('name', $headers) || !in_array('phone number', $headers)) {
+        $hasPhoneColumn = in_array('phone number', $headers) || in_array('telephone number', $headers);
+        if (!in_array('name', $headers) || !$hasPhoneColumn) {
             throw SMSPortalException::invalidHeaders();
         }
     }
@@ -397,9 +398,10 @@ class ContactUploader
         $rowPrefix = "Row {$rowNumber} ";
 
         try {
+            $phoneValue = $data['phone number'] ?? $data['telephone number'] ?? '';
             $contactData = [
                 'name' => $this->sanitizeInput($data['name']),
-                'phone_number' => $this->sanitizeInput($data['phone number']),
+                'phone_number' => $this->sanitizeInput($phoneValue),
                 'email' => $this->sanitizeInput($data['email'] ?? ''),
                 'group' => $this->sanitizeInput($data['group'] ?? $defaultGroup),
                 'company' => $this->sanitizeInput($data['company'] ?? ''),
