@@ -211,15 +211,73 @@ if ($conn) {
                     <?php if ($totalPages > 1): ?>
                         <nav aria-label="Page navigation">
                             <ul class="pagination justify-content-center">
-                                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <?php
+                                // Calculate pagination range
+                                $range = 2; // Number of pages to show on each side of current page
+                                $startPage = max(1, $page - $range);
+                                $endPage = min($totalPages, $page + $range);
+
+                                // Build query parameters
+                                $queryParams = http_build_query([
+                                    'search' => $search,
+                                    'status' => $status,
+                                    'date_from' => $dateFrom,
+                                    'date_to' => $dateTo
+                                ]);
+                                ?>
+
+                                <!-- Previous button -->
+                                <?php if ($page > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=<?php echo $page - 1; ?>&<?php echo $queryParams; ?>" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+
+                                <!-- First page -->
+                                <?php if ($startPage > 1): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1&<?php echo $queryParams; ?>">1</a>
+                                    </li>
+                                    <?php if ($startPage > 2): ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+
+                                <!-- Page numbers -->
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
                                     <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                                        <a class="page-link" href="?page=<?php echo $i; ?>&search=<?php
-                                                                                                    echo urlencode($search); ?>&status=<?php
-                                                                                                                                        echo urlencode($status); ?>&date_from=<?php
-                                                                                                                                                                                echo urlencode($dateFrom); ?>&date_to=<?php
-                                                                                                                                                                                                                        echo urlencode($dateTo); ?>"><?php echo $i; ?></a>
+                                        <a class="page-link" href="?page=<?php echo $i; ?>&<?php echo $queryParams; ?>">
+                                            <?php echo $i; ?>
+                                        </a>
                                     </li>
                                 <?php endfor; ?>
+
+                                <!-- Last page -->
+                                <?php if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?>
+                                        <li class="page-item disabled">
+                                            <span class="page-link">...</span>
+                                        </li>
+                                    <?php endif; ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=<?php echo $totalPages; ?>&<?php echo $queryParams; ?>">
+                                            <?php echo $totalPages; ?>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
+
+                                <!-- Next button -->
+                                <?php if ($page < $totalPages): ?>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=<?php echo $page + 1; ?>&<?php echo $queryParams; ?>" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
                             </ul>
                         </nav>
                     <?php endif; ?>
@@ -328,5 +386,12 @@ if ($conn) {
 
     .table:not(.d-none) {
         opacity: 1;
+    }
+
+    .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #fff;
+        border-color: #dee2e6;
     }
 </style>
